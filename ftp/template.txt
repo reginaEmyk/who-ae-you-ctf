@@ -1,0 +1,13 @@
+Camera export template
+
+Replace this file with:
+
+template.jpg
+template.png
+
+You can hide hints using:
+
+- EXIF metadata
+- steganography
+- strings output
+- appended ZIP archives

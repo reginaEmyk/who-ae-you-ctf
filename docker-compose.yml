@@ -1,0 +1,11 @@
+services:
+  whoareyou:
+    build: .
+    container_name: whoareyou
+
+    ports:
+      - "8080:8080"
+      - "2121:21"
+      - "2222:22"
+
+    hostname: whoareyou
