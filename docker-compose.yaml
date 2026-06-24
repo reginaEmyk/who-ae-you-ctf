@@ -1,0 +1,13 @@
+services:
+  ae-idk:
+    build: .
+    container_name: ae-idk
+
+    ports:
+      - "80:80"
+      - "1021:21"
+      - "30000-30010:30000-30010"
+      - "1110:1110"
+      - "5678:5678"
+
+    restart: unless-stopped

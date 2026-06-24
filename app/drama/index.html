@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Morse Audio Lab (Safe)</title>
+<style>
+body { font-family: monospace; background:#0b0b0b; color:#0f0; padding:20px; }
+section { border:1px solid #222; padding:10px; margin:10px 0; }
+input, button { margin:5px; padding:6px; }
+pre { background:#111; padding:10px; }
+</style>
+</head>
+
+<body>
+
+<h2>🔊 Safe Morse Audio Toolbox</h2>
+
+<!-- 1 TEXT → MORSE -->
+<section>
+<h3>Text → Morse</h3>
+<input id="t1" placeholder="text">
+<button onclick="textToMorseUI()">Convert</button>
+<pre id="o1"></pre>
+</section>
+
+<!-- 2 MORSE → ULTRASONIC -->
+<section>
+<h3>Morse → Ultrasonic Audio (Downloadable)</h3>
+<label>Freq (Hz):</label>
+<input id="freq" type="number" value="19000">
+<button onclick="morseToAudio()">Generate + Download</button>
+</section>
+
+<!-- 3 AUDIO + AUDIO MIX -->
+<section>
+<h3>Mix 2 Audio Files</h3>
+<input type="file" id="a1">
+<input type="file" id="a2">
+<button onclick="mixAudio()">Mix + Download</button>
+</section>
+
+<!-- 4 AUDIO → EXTRACT TONE -->
+<section>
+<h3>Extract Tone Energy (Freq Band)</h3>
+<input type="file" id="a3">
+<label>Freq:</label>
+<input id="freq2" type="number" value="19000">
+<button onclick="extractTone()">Extract</button>
+<pre id="o2"></pre>
+</section>
+
+<!-- 5 AUDIO → MORSE (basic decode) -->
+<section>
+<h3>Audio → Morse (approx)</h3>
+<input type="file" id="a4">
+<button onclick="audioToMorse()">Decode</button>
+<pre id="o3"></pre>
+</section>
+
+<!-- 6 MORSE → TEXT -->
+<section>
+<h3>Morse → Text</h3>
+<input id="m2" placeholder="... --- ...">
+<button onclick="morseToTextUI()">Convert</button>
+<pre id="o4"></pre>
+</section>
+
+<script>
+
+/* ---------------- MORSE ---------------- */
+const MORSE = {
+A:".-",B:"-...",C:"-.-.",D:"-..",E:".",F:"..-.",
+G:"--.",H:"....",I:"..",J:".---",K:"-.-",L:".-..",
+M:"--",N:"-.",O:"---",P:".--.",Q:"--.-",R:".-.",
+S:"...",T:"-",U:"..-",V:"...-",W:".--",X:"-..-",
+Y:"-.--",Z:"--.."," ":"/"
+};
+const REV = Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
+
+/* ---------------- TEXT → MORSE ---------------- */
+function textToMorse(t){
+return t.toUpperCase().split("").map(c=>MORSE[c]||"").join(" ");
+}
+function textToMorseUI(){
+const t=document.getElementById("t1").value;
+document.getElementById("o1").textContent=textToMorse(t);
+}
+
+/* ---------------- MORSE → TEXT ---------------- */
+function morseToText(m){
+return m.trim().split(" ").map(x=>REV[x]||"").join("");
+}
+function morseToTextUI(){
+document.getElementById("o4").textContent =
+morseToText(document.getElementById("m2").value);
+}
+
+/* ---------------- AUDIO CONTEXT ---------------- */
+function ctx(){ return new AudioContext(); }
+
+/* ---------------- SAFE OSC BURST ---------------- */
+function burst(ctx,freq,start,dur,gainNode){
+const o=ctx.createOscillator();
+const g=ctx.createGain();
+
+o.frequency.value=freq;
+o.type="sine";
+
+o.connect(g);
+g.connect(gainNode);
+
+g.gain.setValueAtTime(0,start);
+g.gain.linearRampToValueAtTime(0.05,start+0.01); // VERY LOW SAFE GAIN
+g.gain.setValueAtTime(0.05,start+dur-0.01);
+g.gain.linearRampToValueAtTime(0,start+dur);
+
+o.start(start);
+o.stop(start+dur);
+}
+
+/* ---------------- MORSE → AUDIO + DOWNLOAD ---------------- */
+async function morseToAudio(){
+const freq=parseInt(document.getElementById("freq").value||19000);
+
+const c=ctx();
+const master=c.createGain();
+master.connect(c.destination);
+
+let t=c.currentTime;
+let dur=0;
+
+const m=document.getElementById("o1").textContent || textToMorse(document.getElementById("t1").value);
+
+for(const s of m){
+if(s=="."){ burst(c,freq,t,0.06,master); t+=0.08; }
+else if(s=="-"){ burst(c,freq,t,0.14,master); t+=0.16; }
+else t+=0.08;
+dur=t;
+}
+
+/* render offline for download */
+const offline=new OfflineAudioContext(1,44100*dur,44100);
+
+let tt=0;
+for(const s of m){
+if(s=="."){ burst(offline,freq,tt,0.06,offline.destination); tt+=0.08; }
+else if(s=="-"){ burst(offline,freq,tt,0.14,offline.destination); tt+=0.16; }
+else tt+=0.08;
+}
+
+const rendered=await offline.startRendering();
+downloadWAV(rendered,"morse.wav");
+}
+
+/* ---------------- MIX AUDIO ---------------- */
+async function mixAudio(){
+const f1=document.getElementById("a1").files[0];
+const f2=document.getElementById("a2").files[0];
+if(!f1||!f2)return;
+
+const c=ctx();
+
+const d1=await f1.arrayBuffer();
+const d2=await f2.arrayBuffer();
+
+const b1=await c.decodeAudioData(d1);
+const b2=await c.decodeAudioData(d2);
+
+const len=Math.max(b1.length,b2.length);
+const out=c.createBuffer(1,len,b1.sampleRate);
+
+const ch=out.getChannelData(0);
+
+for(let i=0;i<len;i++){
+ch[i]=(b1.getChannelData(0)[i]||0)+(b2.getChannelData(0)[i]||0);
+}
+
+downloadWAV(out,"mix.wav");
+}
+
+/* ---------------- EXTRACT TONE ---------------- */
+async function extractTone(){
+const f=document.getElementById("a3").files[0];
+const freq=parseInt(document.getElementById("freq2").value||19000);
+if(!f)return;
+
+const c=ctx();
+const buf=await c.decodeAudioData(await f.arrayBuffer());
+
+const src=c.createBufferSource();
+const filter=c.createBiquadFilter();
+const analyser=c.createAnalyser();
+
+filter.type="bandpass";
+filter.frequency.value=freq;
+filter.Q.value=10;
+
+src.buffer=buf;
+src.connect(filter);
+filter.connect(analyser);
+
+src.start();
+
+const data=new Uint8Array(analyser.frequencyBinCount);
+
+setTimeout(()=>{
+analyser.getByteFrequencyData(data);
+let avg=data.reduce((a,b)=>a+b,0)/data.length;
+document.getElementById("o2").textContent="Energy: "+avg.toFixed(2);
+},500);
+}
+
+/* ---------------- AUDIO → MORSE (simple envelope detection) ---------------- */
+async function audioToMorse(){
+const f=document.getElementById("a4").files[0];
+if(!f)return;
+
+const c=ctx();
+const buf=await c.decodeAudioData(await f.arrayBuffer());
+
+const data=buf.getChannelData(0);
+
+let morse="";
+let threshold=0.02;
+let on=false;
+let count=0;
+
+for(let i=0;i<data.length;i+=1000){
+let v=Math.abs(data[i]);
+
+if(v>threshold){
+if(!on){ morse+="."; on=true; }
+}
+else{
+on=false;
+morse+=" ";
+}
+}
+// DOESNT WORK
+// should turn text -> morse -> ultrasonic audio added to normal file 
+// should extract any audio in a weird frequency range and decode morse from it
+
+document.getElementById("o3").textContent=morse;
+}
+
+/* ---------------- WAV EXPORT ---------------- */
+function downloadWAV(buffer,name){
+const wav=audioBufferToWav(buffer);
+const blob=new Blob([wav],{type:"audio/wav"});
+const url=URL.createObjectURL(blob);
+
+const a=document.createElement("a");
+a.href=url;
+a.download=name;
+a.click();
+}
+
+/* minimal wav encoder */
+function audioBufferToWav(buffer){
+let length=buffer.length*2+44;
+let arrayBuffer=new ArrayBuffer(length);
+let view=new DataView(arrayBuffer);
+
+function writeString(v,o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));}
+
+writeString(view,0,"RIFF");
+view.setUint32(4,36+buffer.length*2,true);
+writeString(view,8,"WAVE");
+writeString(view,12,"fmt ");
+view.setUint32(16,16,true);
+view.setUint16(20,1,true);
+view.setUint16(22,1,true);
+view.setUint32(24,44100,true);
+view.setUint32(28,44100*2,true);
+view.setUint16(32,2,true);
+view.setUint16(34,16,true);
+writeString(view,36,"data");
+view.setUint32(40,buffer.length*2,true);
+
+let offset=44;
+let data=buffer.getChannelData(0);
+
+for(let i=0;i<data.length;i++){
+let s=Math.max(-1,Math.min(1,data[i]));
+view.setInt16(offset,s<0?s*0x8000:s*0x7FFF,true);
+offset+=2;
+}
+
+return arrayBuffer;
+}
+
+</script>
+</body>
+</html>

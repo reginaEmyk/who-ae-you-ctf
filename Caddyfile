@@ -1,0 +1,23 @@
+:80 {
+
+    root * /app/web
+
+    encode gzip
+
+    file_server
+
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+    }
+
+    @forbidden {
+        path /.git*
+        path *.env
+        path *.db
+        path *.sqlite
+        path *.bak
+    }
+
+    respond @forbidden 403
+}
