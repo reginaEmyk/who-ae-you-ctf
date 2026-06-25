@@ -54,9 +54,9 @@ nota: flower e cooper estao na rockyou.txt
 ./docker-compose.yml
 ---
 services:
-  fbro:
+  who-ae-u:
     build: .
-    container_name: fbro
+    container_name: who-ae-u
 
     ports:
       - "97:80"
@@ -217,9 +217,9 @@ nota: flower e cooper estao na rockyou.txt
 ./docker-compose.yml
 ---
 services:
-  fbro:
+  who-ae-u:
     build: .
-    container_name: fbro
+    container_name: who-ae-u
 
     ports:
       - "97:80"

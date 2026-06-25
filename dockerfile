@@ -7,20 +7,11 @@ RUN apk add --no-cache \
     vsftpd \
     shadow
 
-#
-# USERS (RESTORED EXACTLY AS YOU NEED)
-#
 RUN useradd -m supernova && \
     echo "supernova:sususu" | chpasswd && \
     useradd -m aespa && \
     echo "aespa:cooper" | chpasswd
-    
 
-# TODO CHANGE TO SUPERNOVA USER , KEEP ALL WEB STUFF IN SUPERNOVA AND OUT OF ROOT
-
-#
-# FILEBROWSER (only for supernova web layer)
-#
 RUN curl -L \
     https://github.com/filebrowser/filebrowser/releases/download/v2.63.0/linux-amd64-filebrowser.tar.gz \
     -o /tmp/fb.tar.gz && \
@@ -28,9 +19,14 @@ RUN curl -L \
     chmod +x /usr/local/bin/filebrowser && \
     rm -f /tmp/fb.tar.gz
 
-RUN mkdir -p /srv/files
+RUN mkdir -p \
+    /home/supernova/file-browser \
+    /home/aespa/ftp
 
-COPY app/ /srv/files/
+RUN chown -R supernova:supernova /home/supernova && \
+    chown -R aespa:aespa /home/aespa
+
+COPY file-browser/ /home/supernova/file-browser/
 COPY entry.sh /entry.sh
 COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
 

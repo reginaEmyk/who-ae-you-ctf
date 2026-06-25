@@ -1,10 +1,11 @@
 services:
-  fbro:
+  who-ae-u:
     build: .
-    container_name: fbro
+    container_name: who-ae-u
 
     ports:
-      - "97:80"
-      - "27:20"
+      - "93:80"
+      - "28:21"
 
-    # NO RESTART POLICY
+    security_opt:
+      - no-new-privileges:true
