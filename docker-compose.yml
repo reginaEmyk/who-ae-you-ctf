@@ -1,11 +1,10 @@
 services:
-  whoareyou:
+  fbro:
     build: .
-    container_name: whoareyou
+    container_name: fbro
 
     ports:
-      - "8080:8080"
-      - "2121:21"
-      - "2222:22"
+      - "97:80"
+      - "27:20"
 
-    hostname: whoareyou
+    # NO RESTART POLICY
