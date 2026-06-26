@@ -1,11 +1,9 @@
 services:
-  whoareyou:
+  who-ae-u:
     build: .
-    container_name: whoareyou
+    container_name: who-ae-u
 
     ports:
-      - "8080:8080"
-      - "2121:21"
-      - "2222:22"
-
-    hostname: whoareyou
+      - "93:80"
+      - "28:21"
+      - "8080:8080"    # Apache2 (Secured Static Web)
