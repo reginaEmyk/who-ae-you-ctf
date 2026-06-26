@@ -1,0 +1,734 @@
+
+---
+./docker-compose.yml
+---
+services:
+  who-ae-u:
+    build: .
+    container_name: who-ae-u
+
+    ports:
+      - "93:80"
+      - "28:21"
+      - "8080:8080"    # darkhttpd (safe static web)
+
+---
+./dockerfile
+---
+FROM ubuntu:26.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    cron \
+    ca-certificates \
+    curl \
+    tar \
+    vsftpd \
+    sudo \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Remove the default "ubuntu" user (if it exists) and create the only root user: armageddon
+RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
+    useradd -ou 0 -g 0 -m -d /armageddon -s /bin/bash armageddon && \
+    echo "armageddon:l'essence_is_killing_everyone_and_their_copies" | chpasswd && \
+    echo "root:l'essence_is_killing_everyone_and_their_copies" | chpasswd
+
+# Create CTF users
+RUN useradd -m supernova && \
+    echo "supernova:sususu_mixed_the_aes_and_the_aespa" | chpasswd && \
+    useradd -m aespa && \
+    echo "aespa:cooper" | chpasswd && \
+    useradd -m welcomeToMyWorld && \
+    echo "welcomeToMyWorld:and_thank_you_naevis_we_love_you_WTMW" | chpasswd
+
+# Sudo rules: NOPASSWD for cat inside home, password required for outside
+RUN echo 'supernova ALL=(root) NOPASSWD: /bin/cat /home/supernova/*' > /etc/sudoers.d/supernova && \
+    echo 'supernova ALL=(root) PASSWD: /bin/cat /etc/*, /bin/cat /var/log/*, /bin/cat /tmp/*, /bin/cat /usr/bin/*' >> /etc/sudoers.d/supernova
+
+# Create directories and set ownership
+RUN mkdir -p \
+    /home/supernova/file-browser \
+    /home/supernova/singularity \
+    /home/aespa/ftp \
+    /armageddon && \
+    chown -R supernova:supernova /home/supernova && \
+    chown armageddon:root /armageddon
+
+# Cool "whip" effect (singularity command)
+COPY wda4.sh /usr/bin/singularity
+RUN chmod 755 /usr/bin/singularity
+
+# Bash prompt: singularity runs randomly before each prompt
+RUN cat <<'EOF' >> /etc/bash.bashrc
+# --- SIMULATION GLITCH ---
+export PROMPT_COMMAND='if (( RANDOM % 100 < 30 )); then singularity 2>/dev/null; fi'
+# --- END SIMULATION GLITCH ---
+EOF
+
+# Cron job: runs singularity every minute, PATH hijackable by supernova
+RUN cat <<'EOF' > /etc/cron.d/wda4
+PATH=/home/supernova/singularity:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+* * * * * root singularity >> /var/log/singularity.log 2>&1
+EOF
+# Restrict cron file to root only (owner read/write, no group/other access)
+RUN chmod 600 /etc/cron.d/wda4
+
+# Pre-create the log file with restricted permissions
+RUN touch /var/log/singularity.log && \
+    chmod 600 /var/log/singularity.log && \
+    chown root:root /var/log/singularity.log
+
+# ── Everything below runs as supernova ──────────────────
+USER supernova
+
+# Install filebrowser
+RUN mkdir -p /home/supernova/bin && \
+    curl -L https://github.com/filebrowser/filebrowser/releases/download/v2.63.1/linux-amd64-filebrowser.tar.gz \
+         -o /tmp/fb.tar.gz && \
+    tar -xzf /tmp/fb.tar.gz -C /home/supernova/bin && \
+    chmod +x /home/supernova/bin/filebrowser && \
+    rm -f /tmp/fb.tar.gz
+
+RUN echo 'export PATH=/home/supernova/bin:$PATH' >> /home/supernova/.bashrc
+
+# Git lore with secrets hidden in deleted files and commit messages
+RUN cd /home/supernova && \
+    git config --global user.email "supernova@kwangya" && \
+    git config --global user.name "supernova" && \
+    git init && \
+    echo "# The ae are born from digital footprints" > README.md && \
+    echo "# They share the same face but are learning to be themselves" >> README.md && \
+    echo "" >> README.md && \
+    echo "Lexistence precede lessence." >> README.md && \
+    git add README.md && \
+    git commit -m "existence precedes essence" && \
+    echo "The first villain was never the AI entity breaking the connection between people and their aes. It was always ourselves." > journal.txt && \
+    echo "Before these REAL WORLD glitches, Ningning kept asking if we saw something weird. She's got eye damage from childhood, but I think her sight is special. She saw the whole sky turn red the day we found naevis." >> journal.txt && \
+    echo "She dealt the killing blow to the entity separating our connection with the ae. With an overwhelming amount of corrupted data. How else are we to defeat an AI that foresees all our attacks?" >> journal.txt && \
+    echo "But the entity was connected with the SYNK, and that 'poisoned' the web between universes. Now, our aes have copied our looks, and are living their own lives." >> journal.txt && \
+    echo "It's a mess. All these glitches are happening because aespa and aes from different worlds are colliding, after naevis sacrificed herself and stopped guarding the Portal Of Souls." >> journal.txt && \
+    echo "" >> journal.txt && \
+    echo "Haven't seen her in forever. Wish her all the best. We know she ressucitated, but does she also have clones? Even our aes are being copied around." >> journal.txt && \
+    echo "password: sususu_mixed_the_aes_and_the_aespa" >> journal.txt && \
+    git add journal.txt && \
+    git commit -m "When we meet again, there is a password we set. That's another story to explain. It's about the aespa that mixed with the aes and turned into these demigod superbeings, like, some kinda supernova." && \
+    git rm journal.txt && \
+    git commit -m "The supernova were a group of aespa and aes that accepted each other. Even the ugly parts. Some others were killed off, fake ones." && \
+    rm -f journal.txt && \
+    echo "It was never about villains stopping us. It was always about l'essence, the path of a person defining themselves. We have fake parts. We have ugly parts. Beautiful, public, honest, we all have different sides. It was always about realizing we lived in a fake reality that spawned from ourselves, killing off some fake parts, accepting sides of us we didn't know to recognize -- the reflection that moves different from you in the mirror." > status.txt && \
+    echo "" >> status.txt && \
+    echo "Do not look back. Only forward." >> status.txt && \
+    git add status.txt && \
+    git commit -m "It was always about defining ourselves." && \
+    git checkout -b kwangya && \
+    echo "NAEVIS is calling. The real world exists beyond FLAT." > kwangya_signal.txt && \
+    echo "" >> kwangya_signal.txt && \
+    echo "To merge with your true self, you must accept what was deleted." >> kwangya_signal.txt && \
+    echo "The password lies in the memory you chose to forget." >> kwangya_signal.txt && \
+    git add kwangya_signal.txt && \
+    git commit -m "signal from the other side" && \
+    git checkout master
+
+# Extra lore: deleted clue about the armageddon daemon
+RUN echo "The armageddon represents the conflict between the aes and the aespa of multiple worlds. The singularity that intersects lives that should parallel." > /home/supernova/wda.txt && \
+    echo "There were all kinds of people there. Superbeing Winter could fly, Karina was a vampire, and Giselle was a freaking time traveller. She fixed some mess while Ningning burned the place. " >> /home/supernova/wda.txt && \
+    echo "Giselle still does something every minute. It basically means they killed a bunch of fake ideas they lived by, accepted unrecognizable parts of themselves, and grew into themselves. When they defined their essence, they became truly godlike. They dominated everything, but not necessarily by killing. Just subjugating their old selves for how they lived. She keeps doing her own kinda singularity every freaking minute, so that others can reach higher. " >> /home/supernova/wda.txt && \
+    echo "There are 4 aespa that are really scary though. They're Whole Different Animals, they're kinda one apocalyptical creature that keeps policing around. Sometimes I see the WDA Winter watching. " >> /home/supernova/wda.txt && \
+    cd /home/supernova && git add wda.txt && git commit -m "Winter's eyes" && \
+    git rm wda.txt && git commit -m "remove trace" && rm -f wda.txt
+
+
+    # ---------- WEB ------
+# ---------- Switch back to root for package installation ----------
+USER root
+
+RUN curl -L https://github.com/emikulic/darkhttpd/releases/download/v1.15/darkhttpd -o /usr/local/bin/darkhttpd && chmod +x /usr/local/bin/darkhttpd
+# Create web directory and copy files
+RUN mkdir -p /var/www/static \
+    && chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+
+COPY app/web/ /var/www/static/
+COPY app/media/ /var/www/static/
+RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+# ---------------------------
+
+COPY file-browser/ /home/supernova/file-browser/
+COPY entry.sh /entry.sh
+COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
+
+RUN chown -R supernova:supernova /home/supernova && \
+    chown -R aespa:aespa /home/aespa && \
+    chmod +x /entry.sh
+
+# Remove tar to harden the container
+USER root
+# RUN apt-get purge -y tar && apt-get autoremove -y
+
+EXPOSE 80 21 8080
+
+CMD ["/entry.sh"]
+
+---
+./entry.sh
+---
+#!/bin/sh
+set -e
+
+DB=/home/supernova/filebrowser.db
+FILEBROWSER=/home/supernova/bin/filebrowser
+
+# init filebrowser
+if [ ! -f "$DB" ]; then
+    su -s /bin/sh supernova -c "
+        $FILEBROWSER config init \
+            --database $DB \
+            --root /home/supernova/file-browser
+    "
+fi
+
+# start cron properly (Docker-safe)
+cron
+
+# services
+vsftpd /etc/vsftpd/vsftpd.conf &
+
+su -s /bin/sh supernova -c "
+    $FILEBROWSER \
+        --address 0.0.0.0 \
+        --port 80 \
+        --root /home/supernova/file-browser \
+        --database $DB
+" &
+
+# Start darkhttpd on port 8080, no directory listing, run as welcomeToMyWorld
+/usr/local/bin/darkhttpd /var/www/static --port 8080 --no-listing --uid welcomeToMyWorld --gid welcomeToMyWorld &
+
+# IMPORTANT: keep container alive
+tail -f /dev/null
+
+---
+./vsftpd.conf
+---
+listen=YES
+
+anonymous_enable=NO
+
+local_enable=YES
+
+write_enable=NO
+
+local_umask=022
+
+use_localtime=YES
+
+xferlog_enable=YES
+
+connect_from_port_20=YES
+
+chroot_local_user=YES
+allow_writeable_chroot=YES
+
+seccomp_sandbox=NO
+
+pam_service_name=vsftpd
+
+---./Untitled-2
+---
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                  +==oxxOOX%@@@@@@@@@##%@%x                                             
+                                       =~:!!~~!!!!~~+==oxXXXo=oO##X=O@@@$$%OOo=+                                        
+                                    +''' ..'''::~~+oo=++~!+++~~!x#OoOOxO=xoo=++=                                        
+                                   =+...:!:~~~!++==O@@@#o=+!+++oOO=+!+==+~''!~!+                                        
+                                    xxxX#O=+++++=++=X@@Xx+~~++=+~!!!~!~+!'...'':~                                       
+                                   =+~!!:!~+OX#%%%%%#OOxx=++!''.......         .'!=                                     
+                                  =+~~+~~~~~+==+====++~~!!:'''....               ':~                                    
+                                o=+~~+==oxOOxxoo====+++~~!!:''''...... .          .'~                                   
+                               =++~~+=oo@@%@@$O====++++~!!!!:::''.....            .':+                                  
+                               =+~~++=o@...    @@=+==++~~~!!!!:''''... ..         .'!+                                  
+                               =+~~!~+@...       X@===++~~~!!::''''... .        ..':!+                                  
+                               =++!:::O            %$++~!!!:::''''.....  ...''...'':!+                                  
+                               o+~~!!!+'             o#!!::''''''''''''''''''''..'':!~                                  
+                               o=+~!!!!++              ~O:::::'''''''''''''''''..''::~                                  
+                                =+~~!!!~#X    ~+!        ~x:::'::':''++ =''''''...'::~                                  
+                                =+~!!!!~o  .    Xo+x%x     !o:'''!=.  .+'':'''''.''::~                                  
+                                =++!!!!!+=  ~    :@=~~~X'     =o.    +!'':''''''.''::~                                  
+                                o+~~!!!!!~o      #@@#=O~==          =''::'':':'''':::!                                  
+                                o=+~!!!!~~+o        X##~    '      =:':''::'''''.'':!~                                  
+                                 =+~!!!!!~~#:    '!    ~OXx.!     '+'::'::::::'''''::!                                  
+                                 =+~!!!~!!~#        :   ':.'x'    =::::::::::':''''':!                                  
+                                 =+~~!!!!~~#          ~        '. o:::::::::::'''''::!                                  
+                                 o+~~!!!!!~~o                       'o:::::::::''''::!+                                 
+                                  =+~~!!~~~~X  . .   :          !  .o:::::::::::'':::!                                  
+                                  =+~!~~!+##oO!  !    !X !X'      !x=:::::::::::'''::!=                                 
+                                  =+~!!!!O    ~  X!   ~.#X~!=x     o:::::::::::''''::!+                                 
+                                  o++~~!~:        '#         .     x::!:::::::::':'':!+                                 
+                                  o++~~oO      ++:    !          =ox:!:::::::::::::::!+                                 
+                                   =o+o.      ~  .~                'O!:::::::::::''::!+                                 
+                                   =o''xOXx.   +                    :=xxxooo+:::::'::!+                                 
+                                   o+x'..    .!oX!..      .'!!          =xxx::::'::::!~                                 
+                                   o+~x:'.                          :Ox.    o:::::::::~                                 
+                                   =++!x'. ~                     OO!       o::::::::!:~                                 
+                                    =++!~=.    ~'           'XXo          x::::::::::!~                                 
+                                    =+~~~~X           :~XXX~             x:::::::::::!~                                 
+                                    =++!~~~X                            x!!!:::::::::!~                                 
+                                    o+~~~~~~+X                 =XOO  x O:::::::::::::!~                                 
+                                    o=~~~~~!~~+#:  .     !  Oo~X!   OxO:!!:!::::!::::!!                                 
+                                    +=++~~~~~++           X#X      =+!!!!:!!::!::::::!!                                 
+                                     =+~~~~~~~#       '~.          O!!!!!:!:::::!!:!!!~+                                
+                                     =+~~~~~~~~+!   !'              X!!!!!!!:::::~~!!~!                                 
+                                     =++~~~~~~~# !          !    +O!+~:!!!:!!:::~:~=!:!+                                
+                                     o++~~~~~~~# #X      '.       O! =o!!!!!o+!=o!=::!!=                                
+                                      =+~~~~~~~#X~~oO.!      .'   !   o~=~!+~~!=+!:::!!+                                
+                              https://media1.tenor.com/m/JF7UtjidQqYAAAAd/winter-aespa.gif        =++~~~~~~~~O#       :      .  x xOo=+:+=+!~:'!::!+                                
+                                      =+~~~~~~~#~    .:         :    x+o~===!!:::::':!~                                 
+                                      o++~~~~O+  :'             :!   !+.'O!!!:::''!'::                                  
+                                       =+~~~o'.                X~!+Xx      O+:!!!:.!~                                   
+                                         +~~o.               xx!~!!!!!!!!!!!!!!:!:+                                     
+                                           +~o!            Xx~~~!!!!!!!!!!!!!:!+                                        
+                                               ==X#o~+xX#o~~~~~!~!!!~!!!!!=                                             
+                                                       +===+++++==oo                                                    
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+
+
+                                                                                                                        .▄▄ · ▪   ▐ ▄  ▄▄ • ▄• ▄▌▄▄▌   ▄▄▄· ▄▄▄ .▄▄▄  ▪  ▄▄▄▄▄ ▄· ▄▌
+▐█ ▀. ██ •█▌▐█▐█ ▀ ▪█▪██▌██•  ▐█ ▀█ ▀▄.▀·▀▄ █·██ •██  ▐█▪██▌
+▄▀▀▀█▄▐█·▐█▐▐▌▄█ ▀█▄█▌▐█▌██▪  ▄█▀▀█ ▐▀▀▪▄▐▀▀▄ ▐█· ▐█.▪▐█▌▐█▪
+▐█▄▪▐█▐█▌██▐█▌▐█▄▪▐█▐█▄█▌▐█▌▐▌▐█ ▪▐▌▐█▄▄▌▐█•█▌▐█▌ ▐█▌· ▐█▀·.
+ ▀▀▀▀ ▀▀▀▀▀ █▪·▀▀▀▀  ▀▀▀ .▀▀▀  ▀  ▀  ▀▀▀ .▀  ▀▀▀▀ ▀▀▀   ▀ • 
+
+ ▐▄ ·▄ ▄▄▄▄▄  ▪  ▄▄▄. ▄▄▄ ·▄▄▄   ▐▄▄▐▄ •▄ • ▄▄  ▄ ▌   ▪ · ▄▄.
+▐██▪█▌  ██• ██·█ ▄▀·▀.▄▀ █▀ █▌  •██▐██▪█▪ ▀ █▌█▌▐█• ██ .▀ █▌
+▪█▌▐█▌▪.█▌ ·█▌ ▄▀▀▌▄▪▀▀▌ █▀▀█▄  ▪██▐█▌▐█▄█▀ █▄▐▌▌█▌·█▌▄█▀▀▀▄
+.·▀█▌ ·▐█▌ ▐█▌▐█•█▌▐▄▄█▌▐▌▪ █▌▐▌▐█▌▐█▄█▌█▌▪▄█▌▐█▌██▐█▌█▌▪▄█▌
+ • ▀   ▀▀▀ ▀▀▀▀  ▀. ▀▀▀  ▀  ▀  ▀▀▀. ▀▀▀  ▀▀▀▀·▪█ ▀▀▀▀▀ ▀▀▀▀ 
+
+---
+./docker-compose.yml
+---
+services:
+  who-ae-u:
+    build: .
+    container_name: who-ae-u
+
+    ports:
+      - "93:80"
+      - "28:21"
+      - "8080:8080"    # Apache2 (Secured Static Web)
+
+---
+./dockerfile
+---
+FROM ubuntu:26.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Added apache2 to package installation list
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    cron \
+    ca-certificates \
+    curl \
+    tar \
+    vsftpd \
+    sudo \
+    git \
+    apache2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Remove the default "ubuntu" user (if it exists) and create the only root user: armageddon
+RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
+    useradd -ou 0 -g 0 -m -d /armageddon -s /bin/bash armageddon && \
+    echo "armageddon:l'essence_is_killing_everyone_and_their_copies" | chpasswd && \
+    echo "root:l'essence_is_killing_everyone_and_their_copies" | chpasswd
+
+# Create CTF users
+RUN useradd -m supernova && \
+    echo "supernova:sususu_mixed_the_aes_and_the_aespa" | chpasswd && \
+    useradd -m aespa && \
+    echo "aespa:cooper" | chpasswd && \
+    useradd -m welcomeToMyWorld && \
+    echo "welcomeToMyWorld:and_thank_you_naevis_we_love_you_WTMW" | chpasswd
+
+# Sudo rules: NOPASSWD for cat inside home, password required for outside
+RUN echo 'supernova ALL=(root) NOPASSWD: /bin/cat /home/supernova/*' > /etc/sudoers.d/supernova && \
+    echo 'supernova ALL=(root) PASSWD: /bin/cat /etc/*, /bin/cat /var/log/*, /bin/cat /tmp/*, /bin/cat /usr/bin/*' >> /etc/sudoers.d/supernova
+
+# Create directories and set ownership
+RUN mkdir -p \
+    /home/supernova/file-browser \
+    /home/supernova/singularity \
+    /home/aespa/ftp \
+    /armageddon && \
+    chown -R supernova:supernova /home/supernova && \
+    chown armageddon:root /armageddon
+
+# Cool "whip" effect (singularity command)
+COPY wda4.sh /usr/bin/singularity
+RUN chmod 755 /usr/bin/singularity
+
+# Bash prompt: singularity runs randomly before each prompt
+RUN cat <<'EOF' >> /etc/bash.bashrc
+# --- SIMULATION GLITCH ---
+export PROMPT_COMMAND='if (( RANDOM % 100 < 30 )); then singularity 2>/dev/null; fi'
+# --- END SIMULATION GLITCH ---
+EOF
+
+# Cron job: runs singularity every minute, PATH hijackable by supernova
+RUN cat <<'EOF' > /etc/cron.d/wda4
+PATH=/home/supernova/singularity:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+* * * * * root singularity >> /var/log/singularity.log 2>&1
+EOF
+# Restrict cron file to root only (owner read/write, no group/other access)
+RUN chmod 600 /etc/cron.d/wda4
+
+# Pre-create the log file with restricted permissions
+RUN touch /var/log/singularity.log && \
+    chmod 600 /var/log/singularity.log && \
+    chown root:root /var/log/singularity.log
+
+# ── Everything below runs as supernova ──────────────────
+USER supernova
+
+# Install filebrowser
+RUN mkdir -p /home/supernova/bin && \
+    curl -L https://github.com/filebrowser/filebrowser/releases/download/v2.63.1/linux-amd64-filebrowser.tar.gz \
+         -o /tmp/fb.tar.gz && \
+    tar -xzf /tmp/fb.tar.gz -C /home/supernova/bin && \
+    chmod +x /home/supernova/bin/filebrowser && \
+    rm -f /tmp/fb.tar.gz
+
+RUN echo 'export PATH=/home/supernova/bin:$PATH' >> /home/supernova/.bashrc
+
+# Git lore with secrets hidden in deleted files and commit messages
+RUN cd /home/supernova && \
+    git config --global user.email "supernova@kwangya" && \
+    git config --global user.name "supernova" && \
+    git init && \
+    echo "# The ae are born from digital footprints" > README.md && \
+    echo "# They share the same face but are learning to be themselves" >> README.md && \
+    echo "" >> README.md && \
+    echo "Lexistence precede lessence." >> README.md && \
+    git add README.md && \
+    git commit -m "existence precedes essence" && \
+    echo "The first villain was never the AI entity breaking the connection between people and their aes. It was always ourselves." > journal.txt && \
+    echo "Before these REAL WORLD glitches, Ningning kept asking if we saw something weird. She's got eye damage from childhood, but I think her sight is special. She saw the whole sky turn red the day we found naevis." >> journal.txt && \
+    echo "She dealt the killing blow to the entity separating our connection with the ae. With an overwhelming amount of corrupted data. How else are we to defeat an AI that foresees all our attacks?" >> journal.txt && \
+    echo "But the entity was connected with the SYNK, and that 'poisoned' the web between universes. Now, our aes have copied our looks, and are living their own lives." >> journal.txt && \
+    echo "It's a mess. All these glitches are happening because aespa and aes from different worlds are colliding, after naevis sacrificed herself and stopped guarding the Portal Of Souls." >> journal.txt && \
+    echo "" >> journal.txt && \
+    echo "Haven't seen her in forever. Wish her all the best. We know she ressucitated, but does she also have clones? Even our aes are being copied around." >> journal.txt && \
+    echo "password: sususu_mixed_the_aes_and_the_aespa" >> journal.txt && \
+    git add journal.txt && \
+    git commit -m "When we meet again, there is a password we set. That's another story to explain. It's about the aespa that mixed with the aes and turned into these demigod superbeings, like, some kinda supernova." && \
+    git rm journal.txt && \
+    git commit -m "The supernova were a group of aespa and aes that accepted each other. Even the ugly parts. Some others were killed off, fake ones." && \
+    rm -f journal.txt && \
+    echo "It was never about villains stopping us. It was always about l'essence, the path of a person defining themselves. We have fake parts. We have ugly parts. Beautiful, public, honest, we all have different sides. It was always about realizing we lived in a fake reality that spawned from ourselves, killing off some fake parts, accepting sides of us we didn't know to recognize -- the reflection that moves different from you in the mirror." > status.txt && \
+    echo "" >> status.txt && \
+    echo "Do not look back. Only forward." >> status.txt && \
+    git add status.txt && \
+    git commit -m "It was always about defining ourselves." && \
+    git checkout -b kwangya && \
+    echo "NAEVIS is calling. The real world exists beyond FLAT." > kwangya_signal.txt && \
+    echo "" >> kwangya_signal.txt && \
+    echo "To merge with your true self, you must accept what was deleted." >> kwangya_signal.txt && \
+    echo "The password lies in the memory you chose to forget." >> kwangya_signal.txt && \
+    git add kwangya_signal.txt && \
+    git commit -m "signal from the other side" && \
+    git checkout master
+
+# Extra lore: deleted clue about the armageddon daemon
+RUN echo "The armageddon represents the conflict between the aes and the aespa of multiple worlds. The singularity that intersects lives that should parallel." > /home/supernova/wda.txt && \
+    echo "There were all kinds of people there. Superbeing Winter could fly, Karina was a vampire, and Giselle was a freaking time traveller. She fixed some mess while Ningning burned the place. " >> /home/supernova/wda.txt && \
+    echo "Giselle still does something every minute. It basically means they killed a bunch of fake ideas they lived by, accepted unrecognizable parts of themselves, and grew into themselves. When they defined their essence, they became truly godlike. They dominated everything, but not necessarily by killing. Just subjugating their old selves for how they lived. She keeps doing her own kinda singularity every freaking minute, so that others can reach higher. " >> /home/supernova/wda.txt && \
+    echo "There are 4 aespa that are really scary though. They're Whole Different Animals, they're kinda one apocalyptical creature that keeps policing around. Sometimes I see the WDA Winter watching. " >> /home/supernova/wda.txt && \
+    cd /home/supernova && git add wda.txt && git commit -m "Winter's eyes" && \
+    git rm wda.txt && git commit -m "remove trace" && rm -f wda.txt
+
+
+# ---------- WEB (APACHE2 SECURE HARDENING) ------
+# Switch back to root for web service configuration
+USER root
+
+# Create web directory and copy files
+RUN mkdir -p /var/www/static && chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+COPY app/web/ /var/www/static/
+COPY app/media/ /var/www/static/
+RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+
+# Reconfigure Apache to run entirely on Port 8080 serving /var/www/static
+RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
+    sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:8080>/' /etc/apache2/sites-available/000-default.conf && \
+    sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/static|' /etc/apache2/sites-available/000-default.conf
+
+# Drop Apache runtime identity securely to welcomeToMyWorld
+RUN sed -i 's/export APACHE_RUN_USER=www-data/export APACHE_RUN_USER=welcomeToMyWorld/' /etc/apache2/envvars && \
+    sed -i 's/export APACHE_RUN_GROUP=www-data/export APACHE_RUN_GROUP=welcomeToMyWorld/' /etc/apache2/envvars && \
+    chown -R welcomeToMyWorld:welcomeToMyWorld /var/log/apache2 /var/lock/apache2 /var/run/apache2
+
+# Inject your custom Directory strict-indexing constraints rules directly into the configuration
+RUN echo "\n<Directory /var/www/static>\n    Options -Indexes\n    AllowOverride None\n    Require all granted\n</Directory>" >> /etc/apache2/apache2.conf
+# ---------------------------
+
+COPY file-browser/ /home/supernova/file-browser/
+COPY entry.sh /entry.sh
+COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
+
+RUN chown -R supernova:supernova /home/supernova && \
+    chown -R aespa:aespa /home/aespa && \
+    chmod +x /entry.sh
+
+EXPOSE 80 21 8080
+
+CMD ["/entry.sh"]
+
+---
+./entry.sh
+---
+#!/bin/sh
+set -e
+
+DB=/home/supernova/filebrowser.db
+FILEBROWSER=/home/supernova/bin/filebrowser
+
+# init filebrowser
+if [ ! -f "$DB" ]; then
+    su -s /bin/sh supernova -c "
+        $FILEBROWSER config init \
+            --database $DB \
+            --root /home/supernova/file-browser
+    "
+fi
+
+# start cron properly (Docker-safe)
+cron
+
+# services
+vsftpd /etc/vsftpd/vsftpd.conf &
+
+su -s /bin/sh supernova -c "
+    $FILEBROWSER \
+        --address 0.0.0.0 \
+        --port 80 \
+        --root /home/supernova/file-browser \
+        --database $DB
+" &
+
+# Read Apache environment details & execute the web engine safely in background
+. /etc/apache2/envvars
+apache2 -D FOREGROUND &
+
+# IMPORTANT: keep container alive
+tail -f /dev/null
+
+---
+./vsftpd.conf
+---
+listen=YES
+
+anonymous_enable=NO
+
+local_enable=YES
+
+write_enable=NO
+
+local_umask=022
+
+use_localtime=YES
+
+xferlog_enable=YES
+
+connect_from_port_20=YES
+
+chroot_local_user=YES
+allow_writeable_chroot=YES
+
+seccomp_sandbox=NO
+
+pam_service_name=vsftpd
+
+---
+./wda4.sh
+---
+frames=(
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒░▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░░░░░░▒▒░▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░░░░░░░░░░░░░
+▒░░░░░ ░░░▒░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒░░░░░ ░            ░░▒
+▒░░          ░ ░▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░░     ▒▓▓▓▓▓▒▒░░ ░░░░▒▒
+▒░░░░░░░   ░ ▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒ ░   ░░░▓▓▓▓▒▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░░░░▒▒▓▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒░  ░░░░▒▒▒▒░░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒▒░░░░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒░░░░▒░░░░░░▒▒▒▒▒▒▒▒▒
+▓▒▒▒▓▓▒▒▒▒▒▒▒░░░░▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░▒░▒░░▒▒░▒░░░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░
+▒░░░░░░░░░░▒▒▒▒▒░░░▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░             ░░▒
+▒░░       ░       ░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░          ░░░  ░░░░▒▒
+▒░░░░░░░▒▒▒ ░░ ░░░░▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ░▒▒▒░░░░░ ▒▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░▒▒▒  ░░░░░░ ▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒░ ░░░░▒▒▒▒▒░░ ░░ ░░▒▒▒▒▒
+▒▒▒▒▒▒▒░░░░░░░░░▒░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒░░░▒▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒
+▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░▒░▒░░▒▒░░░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░
+▒░░░░░░░░░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░░             ░▒
+▒░░      ░▒▒▒░  ▒  ░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░ ░░▒       ░░░░░░░▒▒
+▒░░░░░░░▒▒▒▒▒▒░░     ░▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ░▒▒▓▓▓▒ ░░░ ▒░░░░░▒▒▒▒
+▒▒▒▒░░ ░░░▒▒▒▒▒░░░░░  ░▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░▒▒▒▒▒▒░░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒░░░░░░░░░░░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒▒░▒░▒▒░░░░▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░▒░▒░░▒▒░▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░
+▒░░░░░░░░░░▒▒▒▒▒░░░▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░             ░░▒
+▒░░       ░       ░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░          ░░░  ░░░░▒▒
+▒░░░░░░░▒▒▒ ░░ ░░░░▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ░▒▒▓░░░░░ ▒▒▒░░░░░░▒▒▒
+▒▒▒▒░░░░░░▒▒▒  ░░░░░  ▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░░▒▒▒▒▒░░ ░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒░░░░░░░░░░░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒░▒▒▒▒▒░▒░░▒▒▒▒▒▒▒▒▒
+▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░░░▒░░▒▒░▒░░░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░░░░░░░░░░░░░
+▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒░░░░░              ░░▒
+▒░░          ░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░░     ▒▓▓▓▓▓▒▒░░░░░░░▒▒
+▒░░░░░░░   ░ ▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒ ░   ░░░▓▓▓▓▒▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░░░░▒▒▓▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░░ ░░░░▒▒▒▒░░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒▒░░ ░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▒▒▒▒░░░░▒░░░░░░▒▒▒▒▒▒▒▒▒
+▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒░░▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░░░▒░░▒▒▒▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+░░▒░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒░░░▒░░░░░░░░░░░░░░░
+▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░░░░  ░            ░░▒
+░░░         ░░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░     ▒▓▓▓▓▓▓▒▒░░░░░░▒▒▒
+▒░░░░░░░  ░ ░▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒    ░░░▓▓▓▓▓▒▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░░ ▒▒▓▒▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░░ ░░░▒▒▒▒▒▒░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒░░░░░░░░░░░░░░▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒░░░░░░░░░░░▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▒▒▒▒▒▒▒▒▒▒░▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░░░▒░░▒▒▒▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+░░▒░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒░░░▒░░░░░░░░░░░░░░░
+▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░░░░  ░            ░░▒
+░░░         ░░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░     ▒▓▓▓▓▓▓▒▒░░░░░░▒▒▒
+▒░░░░░░░  ░ ░▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒    ░░░▓▓▓▓▓▒▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░░ ▒▒▓▒▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░░ ░░░▒▒▒▒▒▒░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒░░░░░░░░░░░░░░▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒░░░░░░░░░░░▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▒▒▒▒▒▒▒▒▒░░▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░░░▒░░▒▒░▒░░░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░▒░░░░░░░░░░░░░░░
+▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒░░░░░              ░░▒
+▒░░          ░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒░     ▒▓▓▓▓▓▒▒░░░░░░░▒▒
+▒░░░░░░░   ░ ▒▒▒▒░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒ ░   ░░░▓▓▓▓▒▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░░░░▒▒▓▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒░  ░░░░▒▒▒▒░░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒▒░░░░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▒▒▒▒░░░░░░░░░░░▒▒▒▒▒▒▒▒▒
+▓▒▒▒▓▒▒▒▒▒▒▒▒▒░░▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░
+▒░░░░▒░░▒▒░▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░
+▒░░░░░░░░░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒░░░░░             ░▒
+▒░░      ░▒▒▒░  ▒  ░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░ ░░▒       ░░░░░░░▒▒
+▒░░░░░░░▒▒▒▒▒▒░░     ░▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ▒▒▒▓▓▓▒ ░░░ ▒░░░░░▒▒▒▒
+▒▒▒▒░░ ░░░▒▒▒▒▒░░░░░  ░▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░░▒▒▒▒▒░░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒▒░░░░░░░░░░░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒░░░░▒▒▒▒▒▒▒▒▒
+▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
+  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
+▒░░░░░░░░░░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒░▒░▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░▒▒▒▒▒▒▒▒░░░▒░▒░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒░░░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░
+▒░░░░░ ░  ░ ░░░▒░░░▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒░░░░               ░▒
+▒░░      ░▒░   ░  ░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░ ░░      ░░▒░░░░░░░▒▒
+▒░   ░░░░▒▒▒ ░░ ░░ ░ ▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒ ░▒▒▒░░░░░░░▒▒░░░░░▒▒▒▒
+▒▒▒▒░░░░░░▒▒▒▒  ░░░░░ ▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░░░░░░▒░░░░░░░░▒▒▒▒▒
+▒▒▒▒▒▒░░░░░░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒░░░░░░░░░░▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▓▒▒▓▓▓▓▓▓▓▓▓▒▒▒▒'
+)
+
+for i in {1..3}; do
+  for frame in "${frames[@]}"; do
+      # clear
+      printf '\033[2J\033[H'
+      printf "%s\n" "$frame"
+      sleep 0.1   # adjust speed (seconds)
+  done
+done
+
+---
+./file-browser/readme.txt
+---
+Welcome.
+
+This directory is owned by the supernova user.
+
+Root does not own the application data.
+FTP content belongs to aespa and is stored separately.
+
+---

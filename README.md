@@ -135,3 +135,10 @@ Karina: The aespa in reality and the fake aespa keeps getting mixed together, th
 | Privilege escalation | Reaching the truth            |
 | Enumeration          | Self-discovery                |
 | Hidden files         | Suppressed memories           |
+
+
+change user names in machine image: 
+- aespa: the one serving website
+- WTMW: file browser
+- supernova: ftp
+- armageddon: root 

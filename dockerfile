@@ -2,6 +2,7 @@ FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Added apache2 to package installation list
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     cron \
@@ -11,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vsftpd \
     sudo \
     git \
+    apache2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Remove the default "ubuntu" user (if it exists) and create the only root user: armageddon
@@ -23,7 +25,9 @@ RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
 RUN useradd -m supernova && \
     echo "supernova:sususu_mixed_the_aes_and_the_aespa" | chpasswd && \
     useradd -m aespa && \
-    echo "aespa:cooper" | chpasswd
+    echo "aespa:cooper" | chpasswd && \
+    useradd -m welcomeToMyWorld && \
+    echo "welcomeToMyWorld:and_thank_you_naevis_we_love_you_WTMW" | chpasswd
 
 # Sudo rules: NOPASSWD for cat inside home, password required for outside
 RUN echo 'supernova ALL=(root) NOPASSWD: /bin/cat /home/supernova/*' > /etc/sudoers.d/supernova && \
@@ -121,7 +125,31 @@ RUN echo "The armageddon represents the conflict between the aes and the aespa o
     cd /home/supernova && git add wda.txt && git commit -m "Winter's eyes" && \
     git rm wda.txt && git commit -m "remove trace" && rm -f wda.txt
 
+
+# ---------- WEB (APACHE2 SECURE HARDENING) ------
+# Switch back to root for web service configuration
 USER root
+
+# Create web directory and copy files
+RUN mkdir -p /var/www/static && chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+COPY app/web/ /var/www/static/
+COPY app/media/ /var/www/static/
+RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+
+# Reconfigure Apache to run entirely on Port 8080 serving /var/www/static
+RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
+    sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:8080>/' /etc/apache2/sites-available/000-default.conf && \
+    sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/static|' /etc/apache2/sites-available/000-default.conf
+
+# Drop Apache runtime identity securely to welcomeToMyWorld
+RUN sed -i 's/export APACHE_RUN_USER=www-data/export APACHE_RUN_USER=welcomeToMyWorld/' /etc/apache2/envvars && \
+    sed -i 's/export APACHE_RUN_GROUP=www-data/export APACHE_RUN_GROUP=welcomeToMyWorld/' /etc/apache2/envvars && \
+    mkdir -p /var/log/apache2 /var/lock/apache2 /var/run/apache2 && \
+    chown -R welcomeToMyWorld:welcomeToMyWorld /var/log/apache2 /var/lock/apache2 /var/run/apache2
+    
+# Inject your custom Directory strict-indexing constraints rules directly into the configuration
+RUN echo "\n<Directory /var/www/static>\n    Options -Indexes\n    AllowOverride None\n    Require all granted\n</Directory>" >> /etc/apache2/apache2.conf
+# ---------------------------
 
 COPY file-browser/ /home/supernova/file-browser/
 COPY entry.sh /entry.sh
@@ -131,6 +159,6 @@ RUN chown -R supernova:supernova /home/supernova && \
     chown -R aespa:aespa /home/aespa && \
     chmod +x /entry.sh
 
-EXPOSE 80 21
+EXPOSE 80 21 8080
 
 CMD ["/entry.sh"]

@@ -6,3 +6,4 @@ services:
     ports:
       - "93:80"
       - "28:21"
+      - "8080:8080"    # Apache2 (Secured Static Web)

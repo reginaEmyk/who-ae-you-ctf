@@ -27,5 +27,9 @@ su -s /bin/sh supernova -c "
         --database $DB
 " &
 
+# Read Apache environment details & execute the web engine safely in background
+. /etc/apache2/envvars
+apache2 -D FOREGROUND &
+
 # IMPORTANT: keep container alive
 tail -f /dev/null

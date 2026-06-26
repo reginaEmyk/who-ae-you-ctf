@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+video {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: block;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Video must be muted to autoplay -->
+<video id="myVideo" autoplay muted loop  width="600">
+  <source src="begin.webm" type="video/webm">
+</video>
+
+<script>
+  // Unmute the video on the first user interaction
+  document.body.addEventListener('click', function() {
+    var video = document.getElementById('myVideo');
+    video.muted = false;
+  }, { once: true });
+</script>
+
+</body>
+</html>
