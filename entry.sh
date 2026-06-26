@@ -2,33 +2,30 @@
 set -e
 
 DB=/home/supernova/filebrowser.db
+FILEBROWSER=/home/supernova/bin/filebrowser
 
+# init filebrowser
 if [ ! -f "$DB" ]; then
     su -s /bin/sh supernova -c "
-        filebrowser config init \
+        $FILEBROWSER config init \
             --database $DB \
             --root /home/supernova/file-browser
     "
-
-    su -s /bin/sh supernova -c "
-        filebrowser users add armageddon armageddonarmageddon \
-            --database $DB \
-            --perm.admin
-    "
-# TODO make them able to ONLY rename files, nothing else 
-    su -s /bin/sh supernova -c "
-        filebrowser users add complexity complexitytrailer \
-            --database $DB
-    "
 fi
 
+# start cron properly (Docker-safe)
+cron
+
+# services
 vsftpd /etc/vsftpd/vsftpd.conf &
 
-exec su -s /bin/sh supernova -c "
-    filebrowser \
+su -s /bin/sh supernova -c "
+    $FILEBROWSER \
         --address 0.0.0.0 \
         --port 80 \
         --root /home/supernova/file-browser \
-        --disable-exec=false \
         --database $DB
-"
+" &
+
+# IMPORTANT: keep container alive
+tail -f /dev/null

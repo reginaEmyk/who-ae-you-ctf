@@ -6,6 +6,3 @@ services:
     ports:
       - "93:80"
       - "28:21"
-
-    security_opt:
-      - no-new-privileges:true
