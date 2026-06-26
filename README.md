@@ -65,9 +65,15 @@ which echo
     ```
 
 # TODO
-um servidor SEM RCE pra /web e /media
+- arrumar o character encoding no apache (acento ~ ` etc)
 ftp: binwalk na imagem leva a um login 
-~~bruteforce no login  (user winter password flowers )~~
+- Colocar um video em index ou alterar a imagem (insira a string base64 notada neste readme), para colocar intrucoes explicando o CTF :
+- - Sit back and relax. The story will be told to you. 
+- - Entenda esta narrativa linearmente.
+- - adicionar dicas  pra motivar as outras regras
+- - deixar o 'light ... run...'
+- - - adicionar em /run uma imagem com dica facil (comando strings) pra porta do FTP 'see port <FTP_PORT>'
+~~bruteforce no login  (user winter password flowers )~~ (ja tem bruteforce no hash da senha em scene1, pra acessar ftp)
 
 # Problemas
 cuidado pra nao usar nginx, ou qqr csa q introduz unauthenticated RCE 

@@ -32,16 +32,39 @@ video {
 <body>
 
 <!-- Video must be muted to autoplay -->
-<video id="myVideo" autoplay muted loop  width="600">
+<video id="myVideo" autoplay muted autoplay playsinline width="600">
   <source src="begin.webm" type="video/webm">
 </video>
-
+<!-- TODO add custom pic by end w our CT Finstructions  -->
 <script>
   // Unmute the video on the first user interaction
   document.body.addEventListener('click', function() {
     var video = document.getElementById('myVideo');
     video.muted = false;
   }, { once: true });
+
+  const video = document.getElementById('myVideo');
+const maxLoops = 3; // Set your desired number of loops
+let currentLoop = 0;
+
+video.addEventListener('timeupdate', () => {
+  // Check if the video has reached the end
+  if (video.currentTime >= video.duration) {
+    currentLoop++;
+    
+    // Check if we've hit the loop limit
+    if (currentLoop >= maxLoops) {
+      video.pause();
+      // Remove the listener so it doesn't accidentally trigger again
+      // video.removeAttribute('loop'); 
+    } else {
+      // If not, replay it from the beginning
+      video.currentTime = 0;
+      video.play();
+    }
+  }
+});
+
 </script>
 
 </body>
