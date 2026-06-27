@@ -27,22 +27,22 @@ su -s /bin/sh supernova -c "
         --database $DB \
         --perm.admin
 
-    # complexity user - rename only
-    $FILEBROWSER users add complexity 'complexitytrailer' \
-        --database "$DB" \
-        --perm.admin=false 
-
     # # complexity user - rename only
     # $FILEBROWSER users add complexity 'complexitytrailer' \
     #     --database "$DB" \
-    #     --perm.admin=false \
-    #     --perm.create=false \
-    #     --perm.delete=false \
-    #     --perm.execute=false \
-    #     --perm.modify=false \
-    #     --perm.share=false \
-    #     --perm.download=true \
-    #     --perm.rename=true
+    #     --perm.admin=false 
+
+    # # complexity user - rename only
+    $FILEBROWSER users add complexity 'complexitytrailer' \
+        --database "$DB" \
+        --perm.admin=false \
+        --perm.create=false \
+        --perm.delete=false \
+        --perm.execute=false \
+        --perm.modify=false \
+        --perm.share=false \
+        --perm.download=true \
+        --perm.rename=true
 
 "
 

