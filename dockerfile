@@ -1,5 +1,5 @@
 FROM ubuntu:26.04
-
+# TODO WHAT USER takes care of ftp what if theyre compromised, 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Added apache2 to package installation list
@@ -24,8 +24,8 @@ RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
 # Create CTF users
 RUN useradd -m supernova && \
     echo "supernova:sususu_mixed_the_aes_and_the_aespa" | chpasswd && \
-    useradd -m aespa && \
-    echo "aespa:cooper" | chpasswd && \
+    useradd -m aespaFtp && \
+    echo "aespaFtp:cooper" | chpasswd && \
     useradd -m welcomeToMyWorld && \
     echo "welcomeToMyWorld:and_thank_you_naevis_we_love_you_WTMW" | chpasswd
 
@@ -127,7 +127,9 @@ RUN echo "The armageddon represents the conflict between the aes and the aespa o
 
 
 # ---------- WEB (APACHE2 SECURE HARDENING) ------
-# Switch back to root for web service configuration
+# Switch back to root for web service 
+
+# ---------- WEB (APACHE2 SECURE HARDENING) ------
 USER root
 
 # Create web directory and copy files
@@ -136,19 +138,34 @@ COPY app/web/ /var/www/static/
 COPY app/media/ /var/www/static/
 RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
 
-# Reconfigure Apache to run entirely on Port 8080 serving /var/www/static
+# Reconfigure Apache to run on port 8080, serve /var/www/static
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
     sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:8080>/' /etc/apache2/sites-available/000-default.conf && \
     sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/static|' /etc/apache2/sites-available/000-default.conf
 
-# Drop Apache runtime identity securely to welcomeToMyWorld
+# Drop Apache runtime identity to welcomeToMyWorld
 RUN sed -i 's/export APACHE_RUN_USER=www-data/export APACHE_RUN_USER=welcomeToMyWorld/' /etc/apache2/envvars && \
     sed -i 's/export APACHE_RUN_GROUP=www-data/export APACHE_RUN_GROUP=welcomeToMyWorld/' /etc/apache2/envvars && \
     mkdir -p /var/log/apache2 /var/lock/apache2 /var/run/apache2 && \
     chown -R welcomeToMyWorld:welcomeToMyWorld /var/log/apache2 /var/lock/apache2 /var/run/apache2
-    
-# Inject your custom Directory strict-indexing constraints rules directly into the configuration
-RUN echo "\n<Directory /var/www/static>\n    Options -Indexes\n    AllowOverride None\n    Require all granted\n</Directory>" >> /etc/apache2/apache2.conf
+
+# Enable headers module (optional, for the X-Hint header)
+RUN a2enmod headers
+
+# Append custom configuration (safe, no broken \n)
+RUN cat <<'EOF' >> /etc/apache2/apache2.conf
+
+AddType video/mp4 .mp4
+Header always set X-Hint "/scene1"
+
+<Directory /var/www/static>
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+EOF
+
+
 # ---------------------------
 
 COPY file-browser/ /home/supernova/file-browser/
@@ -156,7 +173,7 @@ COPY entry.sh /entry.sh
 COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
 
 RUN chown -R supernova:supernova /home/supernova && \
-    chown -R aespa:aespa /home/aespa && \
+    chown -R aespaFtp:aespaFtp /home/aespaFtp && \
     chmod +x /entry.sh
 
 EXPOSE 80 21 8080

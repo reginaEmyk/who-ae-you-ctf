@@ -4,6 +4,6 @@ services:
     container_name: who-ae-u
 
     ports:
-      - "93:80"
-      - "28:21"
+      - "93:80"  # File browser
+      - "48:21"  # FTP
       - "8080:8080"    # Apache2 (Secured Static Web)

@@ -1,10 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Run</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    /* Stays the absolute base background */
+    .bg-ningning {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover; 
+      z-index: 1;
+    }
+
+    /* The Center Stage: This matches Karina's aspect ratio perfectly */
+    .center-stage {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+
+    /* Karina sits right in the center */
+    .fg-karina {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain; 
+      position: relative;
+      z-index: 4; /* On top of everything */
+    }
+
+    /* Winter pieces flank out from behind Karina's edges */
+    .mid-winter {
+      position: absolute;
+      top: 0;
+      width: 50%; /* Stretches outwards from the center */
+      height: 100%;
+      object-fit: cover;
+      z-index: 3; /* Between Ningning and Karina */
+    }
+
+    /* Aligns to the left of Karina's center line */
+    .winter-left {
+      right: 50%; /* Anchors right edge to screen middle, extending left */
+      object-position: right center;
+      mask-image: linear-gradient(to left, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to left, black 60%, transparent 100%);
+    }
+
+    /* Aligns to the right of Karina's center line */
+    .winter-right {
+      left: 50%; /* Anchors left edge to screen middle, extending right */
+      object-position: left center;
+      mask-image: linear-gradient(to right, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, black 60%, transparent 100%);
+    }
+  </style>
 </head>
 <body>
-  <h1>Runner Page</h1>
-  <p>Nothing here... yet.</p>
+
+  <img src="WDA_Ningning.jpeg" alt="Ningning" class="bg-ningning">
+
+  <div class="center-stage">
+    <img src="WDA_winter.webp" alt="Winter Left" class="mid-winter winter-left">
+    <img src="WDA_winter.webp" alt="Winter Right" class="mid-winter winter-right">
+
+    <img src="WDA_karina.jpeg" alt="Karina" class="fg-karina">
+  </div>
+
 </body>
 </html>
