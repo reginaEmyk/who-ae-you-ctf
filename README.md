@@ -11,6 +11,11 @@ port:87: vulneravel a code injection pelo rename
 
 
 # Resolvendo CTF
+- va /scene.html
+    strings, exiftool, break hash ()
+- acessa FTP senha cooper
+- encontre file browser. use o hook depois de RENAME pra revshell. hook deve ser configurado apos docker build
+- leia o cronjob e faca path hijack: crie executavel supernova/singularity/singularity
 
 ## steganography nas midias
 exiftool -Artist="$z2QTv.Ap80vCBfUGUh5riTd3kzq9SrYJwrQGYuhOQDbbXG3R5cV2N8m3HxxJ3gPdUv7eSRKziL.nOBRtjtklu0" -xmptoolkit="$<yummy>$"   -Encoder="$6"  strange_phenomenon_giselle.mp4
