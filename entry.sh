@@ -12,9 +12,12 @@ if [ ! -f "$DB" ]; then
             --root /home/supernova/file-browser
     "
 fi
+# TODO gotta login as admin and set this rule after rename
+# sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
 
 # Create filebrowser users (they live in the SQLite DB, not system users)
 su -s /bin/sh supernova -c "
+
     # Admin user - full control
     $FILEBROWSER users add armageddon 'fSVRTGsfewrfesfgeRGVRSVBSR' \
         --database $DB \
@@ -26,21 +29,25 @@ su -s /bin/sh supernova -c "
 
     # complexity user - rename only
     $FILEBROWSER users add complexity 'complexitytrailer' \
-        --database $DB \
-        --perm.rename \
-        2>/dev/null || $FILEBROWSER users update complexity \
-        --password 'complexitytrailer' \
-        --database $DB \
-        --perm.rename
+        --database "$DB" \
+        --perm.admin=false 
+
+    # # complexity user - rename only
+    # $FILEBROWSER users add complexity 'complexitytrailer' \
+    #     --database "$DB" \
+    #     --perm.admin=false \
+    #     --perm.create=false \
+    #     --perm.delete=false \
+    #     --perm.execute=false \
+    #     --perm.modify=false \
+    #     --perm.share=false \
+    #     --perm.download=true \
+    #     --perm.rename=true
+
 "
 
-# configure rename hook (triggers when complexity renames files)
-# su -s /bin/sh supernova -c "
-#     $FILEBROWSER config set \
-#         --database $DB \
-#         commands.after_rename \
-#         'sh -c \"echo this filename has been renamed: \$FILE\"'
-# "
+
+
 
 # start cron properly (Docker-safe)
 cron

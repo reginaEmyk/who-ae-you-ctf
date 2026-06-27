@@ -32,10 +32,10 @@ video {
 <body>
 
 <!-- Video must be muted to autoplay -->
-<video id="myVideo" controls autoplay muted autoplay playsinline width="600">
-  <source src="adrama.mp4" type="video/mp4">
+<video id="myVideo" controls autoplay muted playsinline width="600">
+  <source src="welcome.mp4" type="video/mp4">
 </video>
-<!-- TODO add custom pic by end w our CT Finstructions  -->
+
 <script>
   // Unmute the video on the first user interaction
   document.body.addEventListener('click', function() {
@@ -69,6 +69,3 @@ video.addEventListener('timeupdate', () => {
 
 </body>
 </html>
-
-<!-- TODO how to make this NOT show in html but pop up in network tab?  -->
-<!-- <script src="/scene1.js"></script> -->
