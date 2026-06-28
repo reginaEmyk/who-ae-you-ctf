@@ -173,7 +173,7 @@ AddType video/mp4 .mp4
 Header always set X-Hint "/scene1"
 
 <Directory /var/www/static>
-    Options -Indexesaes
+    Options -Indexes
     AllowOverride None
     Require all granted
 </Directory>
