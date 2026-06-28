@@ -1,5 +1,5 @@
 FROM ubuntu:26.04
-# TODO WHAT USER takes care of ftp what if theyre compromised, 
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Added apache2 to package installation list
@@ -49,7 +49,7 @@ RUN chmod 755 /usr/bin/singularity
 # Bash prompt: singularity runs randomly before each prompt
 RUN cat <<'EOF' >> /etc/bash.bashrc
 # --- SIMULATION GLITCH ---
-export PROMPT_COMMAND='if (( RANDOM % 100 < 30 )); then singularity 2>/dev/null; fi'
+export PROMPT_COMMAND='if (( RANDOM % 100 < 5 )); then singularity 2>/dev/null; fi'
 # --- END SIMULATION GLITCH ---
 EOF
 
