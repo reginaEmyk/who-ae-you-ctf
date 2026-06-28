@@ -1,3 +1,8 @@
+# TODO 
+Juntar o tutorial nesse readme e nesse projeto do overleaf
+https://www.overleaf.com/1673643711dfmmppvcmzhw#8aa075
+Em um tutorial bem formatado de como conseguir root shell na maquina 
+
 # Build & run 
 ```
 docker compose build --no-cache && docker compose up -d
