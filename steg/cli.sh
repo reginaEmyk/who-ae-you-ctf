@@ -1,4 +1,9 @@
-echo "T3VyIEJlYXV0aWZ1bCBDcmVhdHVyZSB3YXMgZmx5aW5nIHVuZGVyIDEwMDBt" >> app/media/WDA_karina.jpeg 
+echo -n "Our beautiful creature searches under 1000m" | base64
+T3VyIGJlYXV0aWZ1bCBjcmVhdHVyZSBzZWFyY2hlcyB1bmRlciAxMDAwbQ==
+echo "T3VyIGJlYXV0aWZ1bCBjcmVhdHVyZSBzZWFyY2hlcyB1bmRlciAxMDAwbQ==" | base64 -d
+
+
+echo "T3VyIGJlYXV0aWZ1bCBjcmVhdHVyZSBzZWFyY2hlcyB1bmRlciAxMDAwbQ==" >> app/media/WDA_karina.jpeg 
 strings app/media/WDA_karina.jpeg
 
 echo "NDU3ODhmNjM3ZjUzZjRlYWUyNTZjYTNlYTQ0YTY5ZDg3MzlmNjUwMTdiYTc0ZjUyNWUzZGM3ZTVj
