@@ -181,6 +181,20 @@ echo $PATH
 ## steganography nas midias
 
 exiftool -comment="/scene0" -Artist="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" app/media/welcome.webm
+exiftool -Artist="/scene0" -comment="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" app/media/welcome.webm
+ffmpeg -i welcome.webm -metadata comment="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" -metadata artist="/scene0" -codec copy welcome_to_MY_drama.webm
+
+ffmpeg -i ../../orig/strange_.webm -metadata artist="YWVzcGFGaWxlcw=="  -metadata handler_type="$ 6$<yummy>$"  -metadata comment="Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//" -codec copy strange_phenomenon_aeri.webm
+
+
+
+Audio Bits Per Sample           : 32
+Comment                         : Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//
+Artist                          : YWVzcGFGaWxlcw==
+Handler Type                    : $ 6$<yummy>$
+Encoder                         : Lavf60.16.100
+
+
 
 
 echo -n "aespaFiles" | base64
