@@ -1,10 +1,321 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Run</title>
+  <link rel="icon" type="image/svg+xml" href="WDA_3letter.svg">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      touch-action: none;               /* prevent browser gestures */
+    }
+
+    /* Static deepest background – WDA 3‑letter logo */
+    .layer-wda {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.6));
+      z-index: 0;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Full‑screen background – Ningning */
+    .bg-ningning {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    /* Container that holds Winter halves and Karina */
+    .center-stage {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+
+    /* Karina sits right in the center */
+    .fg-karina {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      position: relative;
+      z-index: 4;
+    }
+
+    /* Winter pieces flank out from behind Karina's edges */
+    .mid-winter {
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 3;
+    }
+
+    .winter-left {
+      right: 50%;
+      object-position: right center;
+      mask-image: linear-gradient(to left, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to left, black 60%, transparent 100%);
+    }
+
+    .winter-right {
+      left: 50%;
+      object-position: left center;
+      mask-image: linear-gradient(to right, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, black 60%, transparent 100%);
+    }
+
+    /* Draggable behaviour */
+    .draggable {
+      will-change: transform, opacity;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    .draggable:active {
+      cursor: grabbing;
+    }
+
+    /* Disable transition while dragging */
+    .draggable.no-transition {
+      transition: none !important;
+    }
+
+    /* Hidden after swipe */
+    .draggable.dismissed {
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.5s ease-in, opacity 0.5s ease-in;
+    }
+  </style>
 </head>
 <body>
-  <h1>Runner Page</h1>
-  <p>Nothing here... yet.</p>
+
+  <!-- Static deepest background: WDA 3‑letter logo -->
+  <!-- <img src="../media/WDA_3letter.svg" alt="" class="layer-wda" draggable="false"> -->
+
+  <!-- Draggable background: Ningning -->
+  <img src="WDA_Ningning.jpeg" alt="Ningning" class="bg-ningning draggable" id="ningning" draggable="false">
+
+  <!-- Center stage with Winter halves and Karina -->
+  <div class="center-stage">
+    <img src="WDA_winter.webp" alt="Winter Left" class="mid-winter winter-left draggable" id="winter-left" draggable="false">
+    <img src="WDA_winter.webp" alt="Winter Right" class="mid-winter winter-right draggable" id="winter-right" draggable="false">
+    <img src="WDA_karina.jpeg" alt="Karina" class="fg-karina draggable" id="karina" draggable="false">
+  </div>
+
+  <script>
+    (function() {
+      // All draggable items in the exact order they appear (bottom to top by z-index)
+      const allItems = [
+        document.getElementById('ningning'),     // z1
+        document.getElementById('winter-left'),  // z3 (left)
+        document.getElementById('winter-right'), // z3 (right)
+        document.getElementById('karina')        // z4
+      ];
+
+      // Items that are still visible (not dismissed)
+      let activeStack = [...allItems];
+      let draggedItem = null;
+      let dragData = null;
+
+      const SWIPE_THRESHOLD = 150;
+
+      // Store per‑item drag offsets
+      const stateMap = new Map();
+      allItems.forEach(item => {
+        stateMap.set(item, {
+          dx: 0,
+          dy: 0,
+          startMouseX: 0,
+          startMouseY: 0,
+          startDx: 0,
+          startDy: 0,
+          dragging: false
+        });
+      });
+
+      // Enable pointer events only on the topmost active item
+      function updatePointerEvents() {
+        // Remove all listeners and disable events first
+        allItems.forEach(item => {
+          item.style.pointerEvents = 'none';
+          item.removeEventListener('mousedown', onDragStart);
+          item.removeEventListener('touchstart', onDragStart);
+        });
+
+        if (activeStack.length > 0) {
+          const top = activeStack[activeStack.length - 1];
+          top.style.pointerEvents = 'auto';
+          top.addEventListener('mousedown', onDragStart);
+          top.addEventListener('touchstart', onDragStart, { passive: false });
+        }
+      }
+
+      // Bring back all items to their original places
+      function resetAll() {
+        // Stop any ongoing drag
+        if (draggedItem) {
+          cleanupDrag();
+        }
+
+        allItems.forEach(item => {
+          item.classList.remove('dismissed', 'no-transition');
+          item.style.display = '';          // ensure visible
+          item.style.opacity = '1';
+          item.style.transform = '';        // back to original CSS placement
+          const data = stateMap.get(item);
+          data.dx = 0;
+          data.dy = 0;
+        });
+
+        activeStack = [...allItems];
+        updatePointerEvents();
+      }
+
+      // Fly the item off screen and remove it from the active stack
+      function dismissItem(item) {
+        const data = stateMap.get(item);
+        if (!data) return;
+
+        // Calculate throw direction based on the current drag offset
+        const angle = Math.atan2(data.dy, data.dx);
+        const distance = Math.sqrt(data.dx * data.dx + data.dy * data.dy) * 2.5;
+        let targetX = Math.cos(angle) * distance;
+        let targetY = Math.sin(angle) * distance;
+
+        // For the winter halves we want a stronger horizontal push
+        if (item.classList.contains('mid-winter')) {
+          targetX = (data.dx > 0 ? 1 : -1) * Math.max(Math.abs(data.dx * 3), window.innerWidth);
+          targetY = data.dy * 2;
+        }
+
+        item.classList.add('dismissed');
+        item.style.transform = `translate(${targetX}px, ${targetY}px)`;
+        item.style.opacity = '0';
+
+        item.addEventListener('transitionend', function handler() {
+          item.removeEventListener('transitionend', handler);
+          item.style.display = 'none';
+          // Remove from active stack
+          activeStack = activeStack.filter(el => el !== item);
+
+          if (activeStack.length === 0) {
+            resetAll();
+          } else {
+            updatePointerEvents();
+          }
+        }, { once: true });
+      }
+
+      /* ---------- Drag handlers ---------- */
+      function onDragStart(e) {
+        e.preventDefault();
+        const item = e.currentTarget;
+
+        // Only the topmost item is allowed to start a drag
+        if (item !== activeStack[activeStack.length - 1]) return;
+        const data = stateMap.get(item);
+        if (!data || item.style.display === 'none') return;
+
+        draggedItem = item;
+        dragData = data;
+
+        item.classList.add('no-transition');
+        data.dragging = true;
+
+        const point = e.touches ? e.touches[0] : e;
+        data.startMouseX = point.clientX;
+        data.startMouseY = point.clientY;
+        data.startDx = data.dx;
+        data.startDy = data.dy;
+
+        window.addEventListener('mousemove', onDragMove);
+        window.addEventListener('mouseup', onDragEnd);
+        window.addEventListener('touchmove', onDragMove, { passive: false });
+        window.addEventListener('touchend', onDragEnd);
+      }
+
+      function onDragMove(e) {
+        e.preventDefault();
+        if (!draggedItem || !dragData) return;
+
+        const point = e.touches ? e.touches[0] : e;
+        const dx = dragData.startDx + (point.clientX - dragData.startMouseX);
+        const dy = dragData.startDy + (point.clientY - dragData.startMouseY);
+        dragData.dx = dx;
+        dragData.dy = dy;
+
+        // Apply translation relative to the item's original position
+        draggedItem.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+
+      function onDragEnd(e) {
+        cleanupDrag();
+        if (!draggedItem) return;
+
+        const data = dragData;
+        draggedItem.classList.remove('no-transition');
+
+        const dist = Math.sqrt(data.dx * data.dx + data.dy * data.dy);
+        if (dist > SWIPE_THRESHOLD) {
+          dismissItem(draggedItem);
+        } else {
+          // Snap back to original place
+          draggedItem.style.transform = '';
+          data.dx = 0;
+          data.dy = 0;
+        }
+
+        draggedItem = null;
+        dragData = null;
+      }
+
+      function cleanupDrag() {
+        window.removeEventListener('mousemove', onDragMove);
+        window.removeEventListener('mouseup', onDragEnd);
+        window.removeEventListener('touchmove', onDragMove);
+        window.removeEventListener('touchend', onDragEnd);
+        if (draggedItem) {
+          draggedItem.classList.remove('no-transition');
+          const data = stateMap.get(draggedItem);
+          if (data) data.dragging = false;
+        }
+      }
+
+      // Prevent default image drag behaviour
+      allItems.forEach(item => {
+        item.addEventListener('dragstart', e => e.preventDefault());
+      });
+
+      // Start the interaction
+      updatePointerEvents();
+    })();
+  </script>
 </body>
 </html>

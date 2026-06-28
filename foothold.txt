@@ -1,0 +1,1 @@
+sh -c "echo this old filename has been changed and is now deprecated: \$FILE"

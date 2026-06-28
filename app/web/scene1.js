@@ -1,0 +1,1 @@
+// <!-- try a different file type instead of js -->
