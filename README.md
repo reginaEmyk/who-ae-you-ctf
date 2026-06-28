@@ -23,6 +23,30 @@ sudo docker run -d \
 
 ```
 
+or if alr built
+```
+# Stop and remove the container (ignore errors if it doesn't exist)
+sudo docker rm -f who-ae-you
+
+# Remove the old image
+sudo docker rmi who-ae-you
+
+# Rebuild without using the build cache
+sudo docker build --no-cache -t who-ae-you .
+
+# Run it again
+sudo docker run -d \
+  --name who-ae-you \
+  --hostname who-ae-you \
+  -p 93:80 \
+  -p 48:21 \
+  -p 8080:8080 \
+  -p 30000-30010:30000-30010 \
+  who-ae-you
+```
+
+
+
 go to localhost:97 to find post-auth code injection vulnerability
 - MUST: login as admin, go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
 
@@ -30,6 +54,10 @@ go to localhost:97 to find post-auth code injection vulnerability
 - file-broswer port 93
 
 # Resolvendo CTF
+If firefox cant see video
+go to `about:config`
+search `media.gmp-gmpopenh264.enabled` &  set to `true`
+also `media.ffmpeg.enabled` = `true`
 
 ## Index.html
 1. acesse index.html , exiftool no video. ou melhor, burpsuite p descobrir de onde vem arquive 
