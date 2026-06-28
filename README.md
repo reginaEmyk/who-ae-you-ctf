@@ -2,6 +2,21 @@
 ```
 docker compose build --no-cache && docker compose up -d
 ```
+or 
+```
+
+sudo docker build -t who-ae-you . && \
+
+sudo docker run -d \
+  --name who-ae-you \
+  --hostname who-ae-you \
+  -p 93:80 \
+  -p 48:21 \
+  -p 8080:8080 \
+  -p 30000-30010:30000-30010 \
+  who-ae-you
+
+```
 
 go to localhost:97 to find post-auth code injection vulnerability
 - MUST: login as admin, go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
