@@ -180,6 +180,8 @@ echo $PATH
 ---
 ## steganography nas midias
 
+exiftool -comment="/scene0" -Artist="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" app/media/welcome.webm
+
 
 echo -n "aespaFiles" | base64
 
