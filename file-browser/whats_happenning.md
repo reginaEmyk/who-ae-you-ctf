@@ -1,0 +1,1 @@
+They can both explain it to you in rich man, real karina talked about this

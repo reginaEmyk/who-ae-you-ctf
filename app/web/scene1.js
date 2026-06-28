@@ -1,1 +1,1 @@
-// Go to the html 
+// <!-- try a different file type instead of js -->

