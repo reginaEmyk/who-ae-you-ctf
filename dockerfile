@@ -169,7 +169,8 @@ RUN a2enmod headers
 # Append custom configuration (safe, no broken \n)
 RUN cat <<'EOF' >> /etc/apache2/apache2.conf
 
-AddType video/mp4 .mp4
+AddType video/webm .webm
+AddType audio/webm .webm
 Header always set X-Hint "/scene1"
 
 <Directory /var/www/static>

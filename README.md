@@ -1,7 +1,51 @@
+# TODO 
+Juntar o tutorial nesse readme e nesse projeto do overleaf
+https://www.overleaf.com/1673643711dfmmppvcmzhw#8aa075
+Em um tutorial bem formatado de como conseguir root shell na maquina 
+
 # Build & run 
 ```
 docker compose build --no-cache && docker compose up -d
 ```
+or 
+```
+
+sudo docker build -t who-ae-you . && \
+
+sudo docker run -d \
+  --name who-ae-you \
+  --hostname who-ae-you \
+  -p 93:80 \
+  -p 48:21 \
+  -p 8080:8080 \
+  -p 30000-30010:30000-30010 \
+  who-ae-you
+
+```
+
+or if alr built
+```
+# Stop and remove the container (ignore errors if it doesn't exist)
+sudo docker rm -f who-ae-you
+
+# Remove the old image
+sudo docker rmi who-ae-you
+
+# Rebuild without using the build cache
+sudo docker build --no-cache -t who-ae-you .
+
+# Run it again
+sudo docker run -d \
+  --name who-ae-you \
+  --hostname who-ae-you \
+  -p 93:80 \
+  -p 48:21 \
+  -p 8080:8080 \
+  -p 30000-30010:30000-30010 \
+  who-ae-you
+```
+
+
 
 go to localhost:97 to find post-auth code injection vulnerability
 - MUST: login as admin, go to settings, set command `sh -c "echo this filename has been renamed: \$FILE"` AFTER RENAME, and save.
@@ -10,6 +54,10 @@ go to localhost:97 to find post-auth code injection vulnerability
 - file-broswer port 93
 
 # Resolvendo CTF
+If firefox cant see video
+go to `about:config`
+search `media.gmp-gmpopenh264.enabled` &  set to `true`
+also `media.ffmpeg.enabled` = `true`
 
 ## Index.html
 1. acesse index.html , exiftool no video. ou melhor, burpsuite p descobrir de onde vem arquive 
@@ -131,6 +179,22 @@ echo $PATH
 
 ---
 ## steganography nas midias
+
+exiftool -comment="/scene0" -Artist="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" app/media/welcome.webm
+exiftool -Artist="/scene0" -comment="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" app/media/welcome.webm
+ffmpeg -i welcome.webm -metadata comment="You wanna watch a drama? A Drama can be written from anyone's life, seek your own story" -metadata artist="/scene0" -codec copy welcome_to_MY_drama.webm
+
+ffmpeg -i ../../orig/strange_.webm -metadata artist="YWVzcGFGaWxlcw=="  -metadata handler_type="$ 6$<yummy>$"  -metadata comment="Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//" -codec copy strange_phenomenon_aeri.webm
+
+
+
+Audio Bits Per Sample           : 32
+Comment                         : Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//
+Artist                          : YWVzcGFGaWxlcw==
+Handler Type                    : $ 6$<yummy>$
+Encoder                         : Lavf60.16.100
+
+
 
 
 echo -n "aespaFiles" | base64

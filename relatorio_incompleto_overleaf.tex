@@ -1,0 +1,701 @@
+indocumentclass[12pt,a4paper]{article}
+
+% =====================================================
+% Packages
+% =====================================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{times}
+\usepackage{geometry}
+\geometry{margin=2cm}
+
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[numbers]{natbib}
+\setcounter{secnumdepth}{5}
+% =====================================================
+% Code blocks
+% =====================================================
+
+% =====================================================
+% Better terminal listings
+% =====================================================
+
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{upquote}      % keeps ASCII ', " and ` when copying
+\usepackage{inconsolata}  % high-quality monospace font
+
+% Colors
+\definecolor{cmdbg}{RGB}{20,20,20}
+\definecolor{cmdtext}{RGB}{245,245,245}
+
+\definecolor{outbg}{RGB}{245,245,245}
+\definecolor{outtext}{RGB}{0,0,0}
+
+\definecolor{linenumber}{RGB}{130,130,130}
+
+% Common settings
+\lstset{
+    basicstyle=\ttfamily\small,
+    upquote=true,
+    breaklines=true,
+    showstringspaces=false,
+    keepspaces=true,
+    columns=fullflexible,
+    tabsize=4,
+    numbers=left,
+    numberstyle=\small\color{linenumber},
+    numbersep=8pt,
+    frame=single,
+    rulecolor=\color{black},
+    captionpos=b
+}
+
+% Command blocks
+\lstdefinestyle{command}{
+    language=bash,
+    backgroundcolor=\color{cmdbg},
+    basicstyle=\ttfamily\color{cmdtext},
+    keywordstyle=\color{cmdtext},
+    commentstyle=\color{green},
+    stringstyle=\color{yellow},
+    identifierstyle=\color{cmdtext},
+    numberstyle=\color{linenumber},
+}
+
+% Terminal output blocks
+\lstdefinestyle{output}{
+    language={},
+    backgroundcolor=\color{outbg},
+    basicstyle=\ttfamily\small\color{outtext},
+    keywordstyle=\color{outtext},
+    commentstyle=\color{outtext},
+    stringstyle=\color{outtext},
+    identifierstyle=\color{outtext},
+    numberstyle=\small\color{linenumber},
+}
+% =====================================================
+% Header / Footer
+% =====================================================
+
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{Relatório Técnico --- <NOME DO CTF>}
+\fancyhead[R]{<AUTORES>}
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+% =====================================================
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% CAPA %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{titlepage}
+
+\centering
+
+\vspace*{2cm}
+
+{\Huge\bfseries <NOME DO CTF>\par}
+
+\vspace{0.7cm}
+
+{\Large Relatório Técnico}
+
+\vspace{2cm}
+
+\begin{tabular}{rl}
+Disciplina:& <DISCIPLINA>\\
+Professor:& <PROFESSOR>\\
+Integrantes:& <NOMES>\\
+Data:& \today
+\end{tabular}
+
+\vfill
+
+\end{titlepage}
+
+\tableofcontents
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% INTRODUÇÃO %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introdução}
+
+\subsection{Objetivo}
+
+<DESCREVER O OBJETIVO DO DESAFIO>
+
+\vspace{1em}
+
+\subsection{Contextualização}
+
+<DESCREVER O CENÁRIO DO CTF>
+
+\vspace{1em}
+
+\subsection{Tecnologias utilizadas}
+
+\begin{itemize}
+    \item Ubuntu
+    \item Docker
+    \item Apache
+    \item FTP
+    \item FileBrowser
+    \item <OUTRAS TECNOLOGIAS>
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% EXECUÇÃO DO AMBIENTE %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Execução do Ambiente}
+
+\subsection{Arquivos entregues}
+
+\begin{itemize}
+    \item Dockerfile
+    \item docker-compose.yml
+    \item Scripts auxiliares
+    \item Configurações
+    \item Arquivos do desafio
+\end{itemize}
+
+\subsection{Estrutura do projeto}
+
+\begin{lstlisting}
+
+
+\end{lstlisting}
+
+\subsection{Execução}
+
+\begin{lstlisting}[style=command]
+docker compose build
+
+docker compose up -d
+\end{lstlisting}
+
+\end{lstlisting}
+\subsection{Serviços}
+
+\begin{longtable}{ll}
+\toprule
+Porta & Serviço\\
+\midrule
+8080 & Apache\\
+<PORTA> & FTP\\
+<PORTA> & FileBrowser\\
+\bottomrule
+\end{longtable}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%% ARQUITETURA %%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Arquitetura do Cenário}
+
+<INSERIR DIAGRAMA>
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=.9\linewidth]{architecture.png}
+\caption{Arquitetura do ambiente}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% VULNERABILIDADES %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Vulnerabilidades Implementadas}
+
+\subsection{Vulnerabilidade 1}
+
+<TIPO>
+
+Descrição:
+
+<DESCREVER>
+
+\vspace{1em}
+
+\subsection{Vulnerabilidade 2}
+
+<DESCREVER>
+
+\vspace{1em}
+
+\subsection{Escalada de privilégios}
+
+<DESCREVER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% WALKTHROUGH %%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Walkthrough}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Reconhecimento}
+
+\subsubsection{Nmap}
+\begin{lstlisting}[style=command]
+nmap -A -T5 localhost
+\end{lstlisting}
+
+Observações:
+
+\begin{lstlisting}[style=output]
+PORT      STATE SERVICE         VERSION
+...
+8080/tcp  open  http            Apache httpd 2.4.66 ((Ubuntu))
+|_http-open-proxy: Proxy might be redirecting requests
+|_http-server-header: Apache/2.4.66 (Ubuntu)
+|_http-title: Begin the story
+...
+\end{lstlisting}
+
+\subsubsection{Gobuster}
+Como o servidor utiliza Apache, foi realizada enumeração de diretórios para arquivos `html,php,js`.
+
+\begin{lstlisting}[style=command]
+gobuster dir -u http://localhost:8080 -w Downloads/DirBuster-2007_directory-list-lowercase-2.3-small.txt -x html,php,js -t 1000
+\end{lstlisting}
+\begin{lstlisting}[style=output, label={lst:gobuster}]]
+...
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+/.html                (Status: 403) [Size: 316]
+/index.html           (Status: 200) [Size: 1539]
+/run.html             (Status: 200) [Size: 9765]
+/.html                (Status: 403) [Size: 316]
+Progress: 326572 / 326576 (100.00%)
+...
+\end{lstlisting}
+
+
+\subsubsection{Porta 8080}
+Em http://localhost:8080/
+\paragraph{index.html}
+A página inicial apresenta um vídeo
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{8080 index.png}
+    \caption{Página inicial localhost:8080 }
+    \label{fig:placeholder}
+\end{figure}
+
+Feito o download pelo HTML e explorado com exiftool:
+
+\begin{lstlisting}[style=command]
+exiftool welcome.mp4
+\end{lstlisting}
+
+% Observações:
+
+\begin{lstlisting}[style=output]
+...
+Comment                         : /scene0
+XMP Toolkit                     : Image::ExifTool 12.76
+Artist                          : You wanna watch a drama? A Drama can be written from anyone's life, seek your own story
+...
+\end{lstlisting}
+
+Esse vídeo parece ser a cena 0 de um 'Drama'.
+
+\vspace{1em}
+
+Também foi realizada uma requisição HTTP:
+
+\begin{lstlisting}[style=command]
+curl -I http://localhost:8080/
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=.6\linewidth]{curl localhost 8080 .png}
+\caption{Resposta HTTP}
+\end{figure}
+
+Foi identificado o cabeçalho \texttt{X-Hint: /scene1}
+
+
+\vspace{1em}
+% Todo make all paragraphs hyperrefs like this
+% todo change hyperref box color to a deep discrete dark blueish purple 
+\paragraph{\href{http://localhost:8080/Scene1.html}{8080/Scene1.html}}
+
+Na página:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{scene 1.png}
+    \caption{\texttt{localhost:8080/scene1.html}}
+    \label{fig:placeholder}
+\end{figure}
+
+
+Foi feito download do vídeo, pelo HTML da página. 
+Note que a pessoa é chamada de "aluna artista" no texto da página.
+Analizando os metadados do vídeo:
+
+\begin{lstlisting}[style=command]
+exiftool strange_phenomenon_aeri.mp4
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+...
+Encoder : $6$<yummy>$
+XMP Toolkit :
+Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//
+Artist :
+YWVzcGFGaWxlcw==
+...
+\end{lstlisting}
+
+Decodificando o valor de 'Artist':
+
+\begin{lstlisting}[style=command]
+echo -n "YWVzcGFGaWxlcw==" | base64 -d
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+aespaFiles
+\end{lstlisting}
+
+Parecia existir um hash dividido entre metadados 'Encoder' e 'XMP Toolkit'. 
+
+\vspace{1em}
+
+Ao clicar na página aparece um GIF:
+\begin{figure}[H]
+\centering
+\includegraphics[width=.6\linewidth]{scene1 gif .png}
+\caption{GIF exibido}
+\end{figure}
+
+Inspecionando o HTML:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=.6\linewidth]{see scene1 html calling gif.png}
+\caption{HTML referenciando o GIF}
+\end{figure}
+
+Foi possível realizar download acessando http://localhost:8080/SALTy\_and\_sweet.gif:
+
+Analisando com strings:
+
+\begin{lstlisting}[style=command]
+strings SALTy_and_sweet.gif
+\end{lstlisting}
+\begin{lstlisting}
+...
+;l'existence precede l'essence==
+lexistence
+...
+\end{lstlisting}
+
+Como SALT está em caixa alta, e tem um hash no vídeo, supõe-se que este contém SALT para o hash. Das duas frases inseridas, foi tentado primeiro o SALT menor.
+
+Hash reconstruída:
+% TODO FIX THIS INTRODUCES A NEW LINE IN HASH. CANNOT OVERFLOW BUT CANNOT INTRODUCE NEWLINE 
+\begin{lstlisting}
+$6$lexistence$Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//
+\end{lstlisting}
+
+\begin{lstlisting}[style=command]
+hashid -m '<HASH>'
+\end{lstlisting}
+
+Observação: 'cooper' é uma entrada na 'rockyou.txt'
+
+Wordlist:
+\begin{lstlisting}[style=command]
+echo cooper >> p.txt
+
+hashcat -m 1800 -a 0 hash.txt p.txt
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+$6$lexistence$Yp2586tEONHHNO8K2K4eAH6iEajQEV6HHPg65vkXQFWLGVO9K9fg.TWDrhqsqXlgLpV55qwAgOUGlEsO//EY//:cooper
+\end{lstlisting}
+
+Assim:
+
+\begin{itemize}
+\item Usuário: aespaFiles
+\item Senha: cooper
+\end{itemize}
+
+Estas credenciais são utilizadas posteriormente no FTP.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{\href{http://localhost:8080/Scene1.html}{8080/Run.html}} foi acessado seguindo o gobuster \ref{lst:gobuster}. Possui múltiplas imagens que podem ser movidas
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{8080 run 2 .png}
+    \caption{8080/Run.html}
+    \label{fig:placeholder}
+\end{figure}
+
+Todas fotos foram baixadas pelo HTML, e analizadas com comando \texttt{strings}.
+
+Sabe-se pelo HTML como chegar nos links das imagens 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{run html code where are the images.png}
+    \caption{HTML com fonte da imagem em \texttt{src="WDA\_karina.jpeg"}}
+    \label{fig:placeholder}
+\end{figure}
+
+Segue a resolução dessa parte:
+\begin{enumerate}
+\item Baixar todas as imagens.
+\item Executar strings em cada imagem.
+\item Decodificar a mensagem em Base64.
+\item A Ningning (mulher de branco no cavalo, imagem escondida ao fundo) possui dois hashes.
+\item Essas hashes serão utilizadas posteriormente como passphrases do steghide.
+\begin{enumerate}
+\item Primeira hash:
+    \begin{itemize}
+        \item SHA512
+        \item Descoberta pela CrackStation
+    \end{itemize}
+\item Segunda hash:
+    \begin{itemize}
+        \item bcrypt
+        \item descoberta por hashcat e rockyou
+    \end{itemize}
+\end{enumerate}
+\end{enumerate}
+
+
+\subparagraph{WDA\_karina.jpeg}, Imagem em http://localhost:8080/WDA\_karina.jpeg
+\begin{lstlisting}[style=command]
+ strings WDA_karina.jpeg 
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+...
+_.ha<x1
+9MK3
+T3VyIGJlYXV0aWZ1bCBjcmVhdHVyZSBzZWFyY2hlcyB1bmRlciAxMDAwbQ==
+\end{lstlisting}
+\begin{lstlisting}[style=command]
+echo "T3VyIGJlYXV0aWZ1bCBjcmVhdHVyZSBzZWFyY2hlcyB1bmRlciAxMDAwbQ==" | base64 -d
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+Our beautiful creature searches under 1000m
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{8080 run 1 .png}
+    \caption{WDA\_karina.jpeg -- \textit{Our Beautiful Creature was flying under 1000m}}
+    \label{fig:placeholder}
+\end{figure}
+
+\subparagraph{WDA\_winter.webm}, mesmo processo da karina
+
+\subparagraph{WDA\_Ningning.jpeg},
+
+\begin{lstlisting}[style=command]
+strings WDA_Ningning.jpeg 
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+...
+q,9G
+Fq+b
+PNWO
+NDU3ODhmNjM3ZjUzZjRlYWUyNTZjYTNlYTQ0YTY5ZDg3MzlmNjUwMTdiYTc0ZjUyNWUzZGM3ZTVj
+OWZlZjE4NjRjNWVjM2NmZTA3Nzg4NjYzZjY2NGQxOTM1ODdhNjU2MGRmOTA3N2I0NzljNTI5ODUw
+ZDUwMzBlMjUyYjEwMzE=
+JDJ5JDEwJFFlWk9IejI5UFI1OUtpakdjeFIvYnUwQmNxS3ZXbzIzSVk3bGR1eGJLaXdxSUo4YUJq
+dHZxCg==
+\end{lstlisting}
+Parecem ter duas entradas em base64:
+\begin{lstlisting}[style=command]
+echo "NDU3ODhmNjM3ZjUzZjRlYWUyNTZjYTNlYTQ0YTY5ZDg3MzlmNjUwMTdiYTc0ZjUyNWUzZGM3ZTVj
+OWZlZjE4NjRjNWVjM2NmZTA3Nzg4NjYzZjY2NGQxOTM1ODdhNjU2MGRmOTA3N2I0NzljNTI5ODUw
+ZDUwMzBlMjUyYjEwMzE=" | base64 -d
+\end{lstlisting}
+%TODO DONT OVERFLOW PDF 
+\begin{lstlisting}[style=output]
+45788f637f53f4eae256ca3ea44a69d8739f65017ba74f525e3dc7e5c9fef1864c5ec3cfe07788663f664d193587a6560df9077b479c529850d5030e252b1031
+\end{lstlisting}
+% TODO ADD CRACKSTATION REF
+Parece um hash. Jogando no crackstation
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{crackstation .png}
+    \caption{Hash quebrado -- \textit{complexity}}
+    \label{fig:placeholder}
+\end{figure}
+
+Estudando a outra string:
+%TODO DONT OVERFLOW PDF 
+\begin{lstlisting}[style=command]
+echo "JDJ5JDEwJFFlWk9IejI5UFI1OUtpakdjeFIvYnUwQmNxS3ZXbzIzSVk3bGR1eGJLaXdxSUo4YUJqdHZxCg==" | base64 -d
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq
+\end{lstlisting}
+
+\subparagraph{Quebrando a hash com salt}, usando entrada da rockyou e hashcat
+\begin{lstlisting}[style=command]
+ hashid -m '$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq'
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+...
+[+] bcrypt [Hashcat Mode: 3200]
+\end{lstlisting}
+Nota: 'supernovaflyingbakekang' está na rockyou.txt. Aqui foi criado uma wordlist apenas para demonstrar a quebra, espera-se que as atacantes usem rockyou.txt
+\begin{lstlisting}[style=command]
+echo "supernovaflyingbakekang" > wordlist.txt
+
+echo '$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq' > hash.txt
+
+hashcat -m 3200 -a 0 hash.txt wordlist.txt
+\end{lstlisting}
+
+Após a quebra, pode-se encontrar a senha novamente com 
+
+\begin{lstlisting}[style=command]
+hashcat -m 3200 -a 0 hash.txt wordlist.txt --show
+\end{lstlisting}
+\begin{lstlisting}[style=output]
+$2y$10$QeZOHz29PR59KijGcxR/bu0BcqKvWo23IY7lduxbKiwqIJ8aBjtvq:supernovaflyingbakekang
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{FTP}
+
+A imagem da karina disse sobre search under 1000. Fez-se nmap under ports 1000
+
+
+Notas atuais:
+
+\begin{lstlisting}
+binwalk -e complaexity.mp4
+
+steghide extract \
+-sf image.jpg \
+-p complexity
+\end{lstlisting}
+
+Resultado:
+
+\begin{lstlisting}
+who_are_they.txt
+\end{lstlisting}
+
+Conteúdo:
+
+\begin{lstlisting}
+user: complexity
+
+password: complexitytrailer
+
+Port of file-browser
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{FileBrowser}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Acesso Inicial}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Enumeração Local}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Escalada de Privilégios}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Flag Root}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% IMPLEMENTAÇÃO %%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Detalhes de Implementação}
+
+\subsection{Decisões de projeto}
+
+<PLACEHOLDER>
+
+\subsection{Desafios encontrados}
+
+<PLACEHOLDER>
+
+\subsection{Melhorias futuras}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% CONCLUSÃO %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusão}
+
+<PLACEHOLDER>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% APÊNDICES %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+
+\section{Estrutura do Docker}
+
+<PLACEHOLDER>
+
+\section{Scripts}
+
+<PLACEHOLDER>
+
+\section{Arquivos auxiliares}
+
+<PLACEHOLDER>
+
+\bibliographystyle{unsrtnat}
+\bibliography{bib}
+
+\end{document}do the ctf 
+```
