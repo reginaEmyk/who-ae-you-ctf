@@ -288,9 +288,7 @@ export PATH=/home/supernova/singularity:$PATH
 
 Quando o cronjob foi executado novamente, o sistema localizou primeiro o executável criado durante a exploração e o executou com privilégios de **root**. Como resultado, foi estabelecida uma nova reverse shell, desta vez com privilégios administrativos, concluindo o processo de escalonamento.
 
-
-## 4. Flag
-
+A flag está em `finale.md`
 ```
 root flag{👽 Only I can define myself}
 ```
