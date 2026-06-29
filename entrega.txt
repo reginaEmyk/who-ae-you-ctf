@@ -1,0 +1,16 @@
+perdão, nosso CTF é baseado em steganografia
+os arquivos excederam os limites do aprender 
+nao consegui fazer o upload do zip nem retirando grandes arquivos
+
+Por favor veja 
+
+https://github.com/reginaEmyk/who-ae-you-ctf/tree/main
+
+ou
+
+git clone https://github.com/reginaEmyk/who-ae-you-ctf.git
+
+
+relatorio em 
+
+https://github.com/reginaEmyk/who-ae-you-ctf/blob/main/Relatorio-Who-ae-you-CTF.md

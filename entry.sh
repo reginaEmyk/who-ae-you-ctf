@@ -36,11 +36,11 @@ su -s /bin/sh supernova -c "
     $FILEBROWSER users add complexity 'complexitytrailer' \
         --database "$DB" \
         --perm.admin=false \
-        --perm.create=false \
-        --perm.delete=false \
-        --perm.execute=false \
-        --perm.modify=false \
-        --perm.share=false \
+        --perm.create=true \
+        --perm.delete=true \
+        --perm.execute=true \
+        --perm.modify=true \
+        --perm.share=true \
         --perm.download=true \
         --perm.rename=true
 
