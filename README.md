@@ -232,6 +232,11 @@ Ao confirmar a renomeação, o hook executou o payload injetado, estabelecendo u
 
  Esse acesso permitiu iniciar a busca por mecanismos de escalonamento de privilégios presentes no sistema.
 
+a flag esta em
+```
+strings ning_forgot_the_password_flag.gif 
+```
+![alt text](imagens/user.png)
 ---
 
 ## 3. Escalonamento de Privilégios (PrivEsc)
