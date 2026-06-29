@@ -1,8 +1,8 @@
 services:
-  who-ae-you:
+  tac-who-ae-you:
     build: .
-    container_name: who-ae-you
-    hostname: who-ae-you
+    container_name: tac-who-ae-you
+    hostname: tac-who-ae-you
     ports:
       - "93:80"  # File browser
       - "48:21"  # FTP

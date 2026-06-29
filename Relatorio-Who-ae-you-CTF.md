@@ -23,7 +23,7 @@ senha `fSVRTGsfewrfesfgeRGVRSVBSR`
 scroll down até `After Rename`
 e setar 
 ```
-/bin/bash -c "File renamed. Deprecated name: \$FILE"
+sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
 ```
 este comando roda cada vez que ocorre rename de arquivo.
 ![alt text](imagens/hook.png)
@@ -129,6 +129,8 @@ Além das informações obtidas em **scene1**, a página **/run** continha novas
 
 Durante essa análise, verificou-se que a personagem **Ningning** continha dois hashes. O primeiro, em SHA-512, pôde ser quebrado diretamente utilizando serviços como o CrackStation. O segundo correspondia a um hash **bcrypt**, cuja recuperação foi realizada utilizando uma wordlist personalizada.
 
+NOTA: Qualquer wordlist utilizada aqui pode ser substituída pela rockyou
+
 ```text
 echo "supernovaflyingbakekang" > wordlist.txt
 
@@ -177,29 +179,30 @@ A identificação da porta, juntamente com as credenciais obtidas, possibilitou 
 
 ## 2. Acesso Inicial via RCE (File Browser)
 
-Após identificar a porta correta, foi realizado o login no **File Browser** utilizando as credenciais **complexity:complexitytrailer**. A análise do serviço revelou a presença da vulnerabilidade **CVE-2026-35585**, caracterizada por uma falha de **Command Injection** no hook **after_rename**.
+Após identificar a porta correta, foi realizado o login no **File Browser** utilizando as credenciais **complexity:complexitytrailer**. A versão do File browser observada revelou a presença da vulnerabilidade **CVE-2026-35585**, caracterizada por uma falha de **Command Injection** no hook **after_rename**.
 
-Para que a exploração fosse possível, era necessário que um administrador tivesse configurado previamente o seguinte hook:
+Há um diretório com dois arquivos. 
+É intrigante que um deles seja no formato mkv, especialmente quando os outros vídeos eram em formatos mais comprimidos. 
 
-```text
-sh -c "echo this filename has been renamed: $FILE"
+Este é um formato apropiado para esconder informações pois não é admitida perda de dados
+
+Fazendo a análise do vídeo, encontr-se uma frase
 ```
-
-Durante a investigação dos arquivos armazenados no File Browser, foi identificado um arquivo **MKV**. Seu áudio foi extraído utilizando o **FFmpeg** e posteriormente analisado com **Steghide**, empregando a passphrase recuperada durante a análise da página **/run**.
-
-```text
-ffmpeg -i rich_man.mkv -map 0:a -c copy audio.wav
-
-steghide extract -sf audio.wav -p supernovaflyingbakekang
-
-cat foothold_b64.txt | base64 -d
+$ffmpeg -i rich_man.mkv -map 0:a -c copy audio.wav
+$steghide extract -sf audio.wav -p supernovaflyingbakekang
+wrote extracted data to "foothold_b64.txt".
 ```
+Encontra-se 
+``
+$cat foothold_b64.txt | base64 -d
+sh -c "echo this old filename has been changed and is now deprecated: \$FILE"
+``
 
-O conteúdo recuperado revelou exatamente o comando configurado pelo administrador:
 
-```text
-/bin/bash -c "echo this old filename has been changed and is now deprecated: \$FILE"
-```
+Então, assume-se que um admin tenha setado essa configuração.
+`sh -c "echo this old filename has been changed and is now deprecated: \$FILE"`
+
+Cada vez que o arquivo é renomeado, há um comando com seu nome antigo.
 
 Como a variável **$FILE** era utilizada sem qualquer mecanismo de sanitização, tornou-se possível injetar comandos arbitrários durante a renomeação de arquivos.
 
@@ -220,8 +223,6 @@ Antes da execução, foi iniciado um listener na máquina atacante.
 ```text
 nc -lnvp 4444
 ```
-
-
 
 Ao confirmar a renomeação, o hook executou o payload injetado, estabelecendo uma conexão reversa e fornecendo um shell interativo com os privilégios do usuário **supernova**.
 ![alt text](imagens/revshell.png)

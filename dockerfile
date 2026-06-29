@@ -17,10 +17,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     tar \
     vsftpd \
+    binutils \
     sudo \
     git \
     apache2 \
-    nc \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Remove the default "ubuntu" user (if it exists) and create the only root user: armageddon
